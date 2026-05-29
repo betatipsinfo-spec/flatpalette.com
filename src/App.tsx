@@ -95,7 +95,105 @@ export default function App() {
   const [footerEmail, setFooterEmail] = useState('');
   const [footerSuccess, setFooterSuccess] = useState(false);
 
-  // Sync state to LocalStorage
+  // Load initial dataset from Supabase if tables exist, while maintaining offline local storage fallback
+  useEffect(() => {
+    async function initSupabaseData() {
+      try {
+        // 1. Fetch site settings configurations
+        const { data: dbConfig } = await supabase
+          .from('site_config')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (dbConfig) {
+          setSiteConfig({
+            primaryNeonAccent: dbConfig.primary_neon_accent || INITIAL_SITE_CONFIG.primaryNeonAccent,
+            homepageCarouselEnabled: dbConfig.homepage_carousel_enabled ?? INITIAL_SITE_CONFIG.homepageCarouselEnabled,
+            siteTitle: dbConfig.site_title || INITIAL_SITE_CONFIG.siteTitle,
+            siteDescription: dbConfig.site_description || INITIAL_SITE_CONFIG.siteDescription,
+            activeAnnouncement: dbConfig.active_announcement || INITIAL_SITE_CONFIG.activeAnnouncement,
+            facebookUrl: dbConfig.facebook_url || '',
+            instagramUrl: dbConfig.instagram_url || '',
+            pinterestUrl: dbConfig.pinterest_url || '',
+            linkedinUrl: dbConfig.linkedin_url || '',
+          });
+        }
+
+        // 2. Fetch Leads registries
+        const { data: dbLeads } = await supabase
+          .from('leads')
+          .select('*')
+          .order('submitted_at', { ascending: false });
+
+        if (dbLeads && dbLeads.length > 0) {
+          setLeads(dbLeads.map((l: any) => ({
+            id: l.id,
+            email: l.email,
+            type: l.type,
+            message: l.message || '',
+            submittedAt: l.submitted_at || '',
+          })));
+        }
+
+        // 3. Fetch Palettes
+        const { data: dbPalettes } = await supabase
+          .from('palettes')
+          .select('*')
+          .order('likes', { ascending: false });
+
+        if (dbPalettes && dbPalettes.length > 0) {
+          const mappedPalettes: Palette[] = dbPalettes.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            colors: p.colors || [],
+            tags: p.tags || [],
+            likes: p.likes || 0,
+            bookmarks: false,
+            createdAt: p.created_at ? p.created_at.split('T')[0] : '',
+            approved: p.approved !== undefined ? p.approved : true,
+            isStaffPick: p.is_staff_pick || false,
+            views: p.views || 0,
+          }));
+
+          // Fetch user-specific bookmarks or check localStorage
+          if (sessionUser) {
+            const { data: dbBookmarks } = await supabase
+              .from('bookmarks')
+              .select('palette_id')
+              .eq('user_id', sessionUser.id);
+
+            if (dbBookmarks && dbBookmarks.length > 0) {
+              const bookmarkedIds = new Set(dbBookmarks.map((b: any) => b.palette_id));
+              mappedPalettes.forEach((p) => {
+                if (bookmarkedIds.has(p.id)) {
+                  p.bookmarks = true;
+                }
+              });
+            }
+          } else {
+            const localSaved = localStorage.getItem('flatpalette_bookmarks_v1');
+            if (localSaved) {
+              const bookmarkedIds = new Set(JSON.parse(localSaved));
+              mappedPalettes.forEach((p) => {
+                if (bookmarkedIds.has(p.id)) {
+                  p.bookmarks = true;
+                }
+              });
+            }
+          }
+
+          setPalettes(mappedPalettes);
+        }
+      } catch (err) {
+        console.warn('Silent local fallback triggered. Register tables in Supabase dashboard to persist remote records:', err);
+      }
+    }
+
+    initSupabaseData();
+  }, [sessionUser]);
+
+  // Sync state into LocalStorage
   useEffect(() => {
     localStorage.setItem('flatpalette_palettes_v1', JSON.stringify(palettes));
   }, [palettes]);
@@ -106,6 +204,26 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('flatpalette_config_v1', JSON.stringify(siteConfig));
+    // Persist configurations dynamically to site_config table in Supabase
+    const syncConfigToDB = async () => {
+      try {
+        await supabase.from('site_config').upsert({
+          id: 1,
+          primary_neon_accent: siteConfig.primaryNeonAccent,
+          homepage_carousel_enabled: siteConfig.homepageCarouselEnabled,
+          site_title: siteConfig.siteTitle,
+          site_description: siteConfig.siteDescription,
+          active_announcement: siteConfig.activeAnnouncement,
+          facebook_url: siteConfig.facebookUrl || null,
+          instagram_url: siteConfig.instagramUrl || null,
+          pinterest_url: siteConfig.pinterestUrl || null,
+          linkedin_url: siteConfig.linkedinUrl || null,
+        });
+      } catch (err) {
+        // Fail silently if table does not exist yet
+      }
+    };
+    syncConfigToDB();
   }, [siteConfig]);
 
   // Adjust neon dynamic parameters globally across the page document root if customized by administrator
@@ -177,10 +295,17 @@ export default function App() {
   }, [palettes, homeFeedFilter, searchQuery]);
 
   // Handle Incremental Social Like feedback
-  const handleLikePalette = (id: string, e: React.MouseEvent) => {
+  const handleLikePalette = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    let updatedLikes = 0;
     setPalettes((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, likes: p.likes + 1 } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          updatedLikes = p.likes + 1;
+          return { ...p, likes: updatedLikes };
+        }
+        return p;
+      })
     );
     // If the active viewed detail is the liked one, sync details context too
     setSelectedPalette((prev) => {
@@ -189,13 +314,29 @@ export default function App() {
       }
       return prev;
     });
+
+    try {
+      await supabase
+        .from('palettes')
+        .update({ likes: updatedLikes })
+        .eq('id', id);
+    } catch (err) {
+      console.error('Error updating likes in Supabase:', err);
+    }
   };
 
   // Handle Bookmark Quick toggle state
-  const handleBookmarkPalette = (id: string, e: React.MouseEvent) => {
+  const handleBookmarkPalette = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    let targetBookmarkState = false;
     setPalettes((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, bookmarks: !p.bookmarks } : p))
+      prev.map((p) => {
+        if (p.id === id) {
+          targetBookmarkState = !p.bookmarks;
+          return { ...p, bookmarks: targetBookmarkState };
+        }
+        return p;
+      })
     );
     // Sync viewed details state context
     setSelectedPalette((prev) => {
@@ -204,12 +345,42 @@ export default function App() {
       }
       return prev;
     });
+
+    if (sessionUser) {
+      try {
+        if (targetBookmarkState) {
+          await supabase.from('bookmarks').insert({
+            user_id: sessionUser.id,
+            palette_id: id,
+          });
+        } else {
+          await supabase
+            .from('bookmarks')
+            .delete()
+            .eq('user_id', sessionUser.id)
+            .eq('palette_id', id);
+        }
+      } catch (err) {
+        console.error('Error toggling bookmark in Supabase:', err);
+      }
+    } else {
+      // Save guest bookmark locally
+      const localSaved = localStorage.getItem('flatpalette_bookmarks_v1');
+      let bookmarkedIds: string[] = localSaved ? JSON.parse(localSaved) : [];
+      if (targetBookmarkState) {
+        if (!bookmarkedIds.includes(id)) bookmarkedIds.push(id);
+      } else {
+        bookmarkedIds = bookmarkedIds.filter((bid) => bid !== id);
+      }
+      localStorage.setItem('flatpalette_bookmarks_v1', JSON.stringify(bookmarkedIds));
+    }
   };
 
   // Add a newly submitted or newly generated custom palette item
-  const handleAddNewPalette = (title: string, colors: string[], tags: string[]) => {
+  const handleAddNewPalette = async (title: string, colors: string[], tags: string[]) => {
+    const paletteId = `p-${Date.now()}`;
     const newPal: Palette = {
-      id: `p-${Date.now()}`,
+      id: paletteId,
       title: title,
       colors: colors,
       tags: tags,
@@ -222,22 +393,57 @@ export default function App() {
     };
 
     setPalettes((prev) => [newPal, ...prev]);
+
+    try {
+      await supabase.from('palettes').insert({
+        id: paletteId,
+        title: title,
+        colors: colors,
+        tags: tags,
+        likes: 1,
+        views: 12,
+        approved: true,
+        is_staff_pick: false,
+        user_id: sessionUser?.id || null,
+      });
+    } catch (err) {
+      console.error('Error adding new palette to Supabase:', err);
+    }
   };
 
   // Add lead emails registry
-  const handleAddLeadRegistry = (email: string, type: 'newsletter' | 'feature_request', message?: string) => {
+  const handleAddLeadRegistry = async (email: string, type: 'newsletter' | 'feature_request', message?: string) => {
+    const leadId = `l-${Date.now()}`;
     const newLead: Lead = {
-      id: `l-${Date.now()}`,
+      id: leadId,
       email: email,
       type: type,
       message: message,
       submittedAt: new Date().toISOString()
     };
     setLeads((prev) => [newLead, ...prev]);
+
+    try {
+      await supabase.from('leads').insert({
+        id: leadId,
+        email: email,
+        type: type,
+        message: message || '',
+        user_id: sessionUser?.id || null,
+      });
+    } catch (err) {
+      console.error('Error adding lead to Supabase:', err);
+    }
   };
 
-  const handleDeleteLeadRegistry = (id: string) => {
+  const handleDeleteLeadRegistry = async (id: string) => {
     setLeads((prev) => prev.filter(l => l.id !== id));
+
+    try {
+      await supabase.from('leads').delete().eq('id', id);
+    } catch (err) {
+      console.error('Error deleting lead from Supabase:', err);
+    }
   };
 
   const handleFooterNewsletterSubmit = (e: React.FormEvent) => {
@@ -250,13 +456,22 @@ export default function App() {
     setTimeout(() => setFooterSuccess(false), 3000);
   };
 
-  const handleOpenDetailedPalette = (palette: Palette) => {
-    // Increment simulated views upon selection view details
+  const handleOpenDetailedPalette = async (palette: Palette) => {
+    const updatedViews = (palette.views || 0) + 1;
     setPalettes((prev) =>
-      prev.map((p) => (p.id === palette.id ? { ...p, views: (p.views || 0) + 1 } : p))
+      prev.map((p) => (p.id === palette.id ? { ...p, views: updatedViews } : p))
     );
-    setSelectedPalette({ ...palette, views: (palette.views || 0) + 1 });
+    setSelectedPalette({ ...palette, views: updatedViews });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      await supabase
+        .from('palettes')
+        .update({ views: updatedViews })
+        .eq('id', palette.id);
+    } catch (err) {
+      console.error('Error incrementing palette views in Supabase:', err);
+    }
   };
 
   return (

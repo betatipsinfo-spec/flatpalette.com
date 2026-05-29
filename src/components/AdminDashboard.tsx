@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Palette, SiteConfig, Lead } from '../types';
 import { COLOR_NOMECLATURE_MAP } from '../data';
+import { supabase } from '../supabaseClient';
 
 interface ConfirmModalState {
   isOpen: boolean;
@@ -64,16 +65,40 @@ export default function AdminDashboard({
   };
 
   // Approval/Toggle states inside the matrix
-  const handleToggleApprove = (id: string) => {
+  const handleToggleApprove = async (id: string) => {
+    let targetVal = false;
     setPalettes((prev) => 
-      prev.map((p) => p.id === id ? { ...p, approved: !p.approved } : p)
+      prev.map((p) => {
+        if (p.id === id) {
+          targetVal = !p.approved;
+          return { ...p, approved: targetVal };
+        }
+        return p;
+      })
     );
+    try {
+      await supabase.from('palettes').update({ approved: targetVal }).eq('id', id);
+    } catch (err) {
+      console.error('Error updating approval status in Supabase:', err);
+    }
   };
 
-  const handleToggleStaffPick = (id: string) => {
+  const handleToggleStaffPick = async (id: string) => {
+    let targetVal = false;
     setPalettes((prev) => 
-      prev.map((p) => p.id === id ? { ...p, isStaffPick: !p.isStaffPick } : p)
+      prev.map((p) => {
+        if (p.id === id) {
+          targetVal = !p.isStaffPick;
+          return { ...p, isStaffPick: targetVal };
+        }
+        return p;
+      })
     );
+    try {
+      await supabase.from('palettes').update({ is_staff_pick: targetVal }).eq('id', id);
+    } catch (err) {
+      console.error('Error updating staff pick status in Supabase:', err);
+    }
   };
 
   const handleDeletePalette = (id: string) => {
@@ -82,8 +107,13 @@ export default function AdminDashboard({
       title: 'Delete Palette Permanent',
       message: 'Are you sure you want to delete this color palette permanently from flatpalette archive? This action cannot be undone.',
       confirmLabel: 'Delete',
-      onConfirm: () => {
+      onConfirm: async () => {
         setPalettes((prev) => prev.filter((p) => p.id !== id));
+        try {
+          await supabase.from('palettes').delete().eq('id', id);
+        } catch (err) {
+          console.error('Error deleting palette from Supabase:', err);
+        }
       }
     });
   };
@@ -94,18 +124,25 @@ export default function AdminDashboard({
       title: 'Delete Category Tag',
       message: `Are you sure you want to delete the category tag "#${tagToDelete}" from this palette?`,
       confirmLabel: 'Delete',
-      onConfirm: () => {
+      onConfirm: async () => {
+        let updatedTags: string[] = [];
         setPalettes((prev) =>
           prev.map((p) => {
             if (p.id === paletteId) {
+              updatedTags = p.tags.filter((t) => t !== tagToDelete);
               return {
                 ...p,
-                tags: p.tags.filter((t) => t !== tagToDelete),
+                tags: updatedTags,
               };
             }
             return p;
           })
         );
+        try {
+          await supabase.from('palettes').update({ tags: updatedTags }).eq('id', paletteId);
+        } catch (err) {
+          console.error('Error deleting tag in Supabase:', err);
+        }
       }
     });
   };
@@ -132,20 +169,29 @@ export default function AdminDashboard({
     setEditTags(p.tags.join(', '));
   };
 
-  const handleSaveEdit = (id: string) => {
+  const handleSaveEdit = async (id: string) => {
+    const updatedTags = editTags.split(',').map((t) => t.trim()).filter(Boolean);
     setPalettes((prev) =>
       prev.map((p) => {
         if (p.id === id) {
           return {
             ...p,
             title: editTitle,
-            tags: editTags.split(',').map((t) => t.trim()).filter(Boolean),
+            tags: updatedTags,
           };
         }
         return p;
       })
     );
     setEditingPaletteId(null);
+    try {
+      await supabase.from('palettes').update({
+        title: editTitle,
+        tags: updatedTags,
+      }).eq('id', id);
+    } catch (err) {
+      console.error('Error saving edited palette in Supabase:', err);
+    }
   };
 
   return (
