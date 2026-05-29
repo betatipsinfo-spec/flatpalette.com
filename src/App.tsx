@@ -5,7 +5,7 @@ import {
   ChevronDown, Facebook, Instagram, Linkedin
 } from 'lucide-react';
 
-import { Palette, SiteConfig, Lead } from './types';
+import { Palette, SiteConfig, Lead, ToastMessage } from './types';
 import { INITIAL_PALETTES, INITIAL_LEADS, INITIAL_SITE_CONFIG } from './data';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -50,6 +50,16 @@ export default function App() {
     const local = localStorage.getItem('flatpalette_theme_v1');
     return local === 'light' ? 'light' : 'dark';
   });
+
+  // Dynamic system toast notifications
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 5000);
+  };
 
   useEffect(() => {
     localStorage.setItem('flatpalette_theme_v1', theme);
@@ -137,14 +147,17 @@ export default function App() {
         }
 
         // 3. Fetch Palettes
-        const { data: dbPalettes } = await supabase
+        const { data: dbPalettes, error: fetchPalettesError } = await supabase
           .from('palettes')
           .select('*')
           .order('likes', { ascending: false });
 
-        if (dbPalettes && dbPalettes.length > 0) {
+        if (fetchPalettesError) {
+          console.error("Failed to fetch initial palettes from Supabase:", fetchPalettesError);
+          showToast(`Supabase Connection warning: ${fetchPalettesError.message}`, 'info');
+        } else if (dbPalettes && dbPalettes.length > 0) {
           const mappedPalettes: Palette[] = dbPalettes.map((p: any) => ({
-            id: p.id,
+            id: String(p.id),
             title: p.title,
             colors: p.colors || [],
             tags: p.tags || [],
@@ -184,6 +197,78 @@ export default function App() {
           }
 
           setPalettes(mappedPalettes);
+        } else if (dbPalettes && dbPalettes.length === 0) {
+          // Database is connected but the palettes table is empty! Let's seed it automatically
+          console.log("Supabase palettes table is empty. Auto-seeding initial palettes list...");
+          showToast("Syncing your empty Supabase database with default palettes...", "info");
+          
+          const itemsToInsert = INITIAL_PALETTES.map((p) => ({
+            title: p.title,
+            colors: p.colors,
+            tags: p.tags,
+            likes: p.likes,
+            views: p.views || 10,
+            approved: p.approved,
+            is_staff_pick: p.isStaffPick || false
+          }));
+
+          const { data: seeded, error: seedError } = await supabase
+            .from('palettes')
+            .insert(itemsToInsert)
+            .select();
+
+          if (seedError) {
+            console.warn("Seeding without ID failed, retrying with explicit IDs:", seedError.message);
+            // Retry with explicit client string IDs if the schema defines ID as varchar/text without default
+            const itemsWithClientIds = INITIAL_PALETTES.map((p) => ({
+              id: p.id,
+              title: p.title,
+              colors: p.colors,
+              tags: p.tags,
+              likes: p.likes,
+              views: p.views || 10,
+              approved: p.approved,
+              is_staff_pick: p.isStaffPick || false
+            }));
+
+            const { data: seededWithId, error: seedWithIdError } = await supabase
+              .from('palettes')
+              .insert(itemsWithClientIds)
+              .select();
+
+            if (seedWithIdError) {
+              console.error("Critical: Both auto and client-ID seed attempts failed.", seedWithIdError);
+              showToast(`Supabase Seeding Error: ${seedWithIdError.message}`, "error");
+            } else if (seededWithId) {
+              showToast("Seeded default palettes into Supabase successfully!", "success");
+              setPalettes(seededWithId.map((p: any) => ({
+                id: String(p.id),
+                title: p.title,
+                colors: p.colors || [],
+                tags: p.tags || [],
+                likes: p.likes || 0,
+                bookmarks: false,
+                createdAt: p.created_at ? p.created_at.split('T')[0] : '',
+                approved: p.approved !== undefined ? p.approved : true,
+                isStaffPick: p.is_staff_pick || false,
+                views: p.views || 0,
+              })));
+            }
+          } else if (seeded) {
+            showToast("Successfully seeded palettes into Supabase!", "success");
+            setPalettes(seeded.map((p: any) => ({
+              id: String(p.id),
+              title: p.title,
+              colors: p.colors || [],
+              tags: p.tags || [],
+              likes: p.likes || 0,
+              bookmarks: false,
+              createdAt: p.created_at ? p.created_at.split('T')[0] : '',
+              approved: p.approved !== undefined ? p.approved : true,
+              isStaffPick: p.is_staff_pick || false,
+              views: p.views || 0,
+            })));
+          }
         }
       } catch (err) {
         console.warn('Silent local fallback triggered. Register tables in Supabase dashboard to persist remote records:', err);
@@ -393,9 +478,41 @@ export default function App() {
     };
 
     setPalettes((prev) => [newPal, ...prev]);
+    showToast('Saving palette to Supabase...', 'info');
 
-    try {
-      await supabase.from('palettes').insert({
+    // Strategy 1: Insert WITHOUT specifying 'id' or 'created_at'.
+    // If the DB id is of type UUID or auto-incrementing serial/identity, this will succeed.
+    const { data: dbInserted, error: insertWithoutIdError } = await supabase
+      .from('palettes')
+      .insert({
+        title: title,
+        colors: colors,
+        tags: tags,
+        likes: 1,
+        views: 12,
+        approved: true,
+        is_staff_pick: false,
+        user_id: sessionUser?.id || null,
+      })
+      .select()
+      .maybeSingle();
+
+    if (!insertWithoutIdError) {
+      showToast('Palette saved successfully in Supabase!', 'success');
+      if (dbInserted && dbInserted.id) {
+        setPalettes((prev) =>
+          prev.map((p) => p.id === paletteId ? { ...p, id: String(dbInserted.id) } : p)
+        );
+      }
+      return;
+    }
+
+    // Strategy 2: If inserting without ID failed (e.g. 'null value in column "id" violates not-null' or 'id' doesn't auto-generate because it is a manual varchar/text primary key),
+    // then retry inserting with the generated string client-side ID ('paletteId').
+    console.warn('Auto-ID insert failed, retrying with client-side text ID:', insertWithoutIdError.message);
+    const { data: dbInsertedWithId, error: insertWithIdError } = await supabase
+      .from('palettes')
+      .insert({
         id: paletteId,
         title: title,
         colors: colors,
@@ -405,10 +522,18 @@ export default function App() {
         approved: true,
         is_staff_pick: false,
         user_id: sessionUser?.id || null,
-      });
-    } catch (err) {
-      console.error('Error adding new palette to Supabase:', err);
+      })
+      .select()
+      .maybeSingle();
+
+    if (!insertWithIdError) {
+      showToast('Palette saved successfully in Supabase with client identifier!', 'success');
+      return;
     }
+
+    // If both failed, log the actual SQL constraint violation clearly
+    console.error('All Supabase palette insertion attempts failed:', insertWithIdError);
+    showToast(`Supabase Insert Error: ${insertWithIdError.message}`, 'error');
   };
 
   // Add lead emails registry
@@ -423,16 +548,42 @@ export default function App() {
     };
     setLeads((prev) => [newLead, ...prev]);
 
-    try {
-      await supabase.from('leads').insert({
+    // Strategy 1: Insert without ID to let Supabase auto-generate
+    const { data: dbLeadInserted, error: leadWithoutIdError } = await supabase
+      .from('leads')
+      .insert({
+        email: email,
+        type: type,
+        message: message || '',
+        user_id: sessionUser?.id || null,
+      })
+      .select()
+      .maybeSingle();
+
+    if (!leadWithoutIdError) {
+      if (dbLeadInserted && dbLeadInserted.id) {
+        setLeads((prev) =>
+          prev.map((l) => l.id === leadId ? { ...l, id: String(dbLeadInserted.id) } : l)
+        );
+      }
+      return;
+    }
+
+    // Strategy 2: Retry with client string ID
+    console.warn('Lead Auto-ID insert failed, retrying with client-side text ID:', leadWithoutIdError.message);
+    const { error: leadWithIdError } = await supabase
+      .from('leads')
+      .insert({
         id: leadId,
         email: email,
         type: type,
         message: message || '',
         user_id: sessionUser?.id || null,
       });
-    } catch (err) {
-      console.error('Error adding lead to Supabase:', err);
+
+    if (leadWithIdError) {
+      console.error('All Supabase lead registration attempts failed:', leadWithIdError);
+      showToast(`Supabase Lead Registry Error: ${leadWithIdError.message}`, 'error');
     }
   };
 
@@ -945,6 +1096,36 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Toast Notification HUD */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full" id="toast-hub">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+            className={`cursor-pointer flex items-start gap-3 p-4 rounded-xl border backdrop-blur-md shadow-lg transition-transform duration-300 hover:scale-[1.02] ${
+              toast.type === 'error'
+                ? 'bg-red-500/10 border-red-500/30 text-red-200 shadow-red-500/5'
+                : toast.type === 'success'
+                ? 'bg-[#00FFD1]/10 border-[#00FFD1]/30 text-[#00FFD1] shadow-[#00FFD1]/5'
+                : 'bg-blue-500/10 border-blue-500/30 text-blue-200 shadow-blue-500/5'
+            }`}
+          >
+            <div className="mt-0.5">
+              {toast.type === 'error' ? (
+                <X className="h-4 w-4 text-red-400" />
+              ) : toast.type === 'success' ? (
+                <CheckCircle2 className="h-4 w-4 text-[#00FFD1]" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-blue-400" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold leading-relaxed">{toast.message}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
     </div>
   );

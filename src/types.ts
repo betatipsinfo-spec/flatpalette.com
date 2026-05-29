@@ -39,3 +39,9 @@ export interface SiteConfig {
   pinterestUrl?: string;
   linkedinUrl?: string;
 }
+
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: 'error' | 'success' | 'info';
+}

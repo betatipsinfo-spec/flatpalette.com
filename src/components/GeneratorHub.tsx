@@ -18,7 +18,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
   const [isSuggestingTitle, setIsSuggestingTitle] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
 
-  const handleSuggestTitle = async () => {
+  const suggestTitleForColors = async (targetColors: string[], targetTags: string[]) => {
     setIsSuggestingTitle(true);
     setSuggestError(null);
     try {
@@ -28,8 +28,8 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          colors,
-          tags: selectedTags,
+          colors: targetColors,
+          tags: targetTags,
         }),
       });
 
@@ -48,6 +48,10 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
     } finally {
       setIsSuggestingTitle(false);
     }
+  };
+
+  const handleSuggestTitle = async () => {
+    await suggestTitleForColors(colors, selectedTags);
   };
 
   // Suffix parameters for multi-select tags state control
@@ -201,12 +205,12 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
       pickedSet.push(generateRandomHex());
     }
 
-    setColors((prevColors) => {
-      // Respect locked slot positions
-      return prevColors.map((col, idx) => (locked[idx] ? col : pickedSet[idx]));
-    });
+    const nextColors = colors.map((col, idx) => (locked[idx] ? col : pickedSet[idx]));
+    setColors(nextColors);
     setHighlightCoords(null);
     setIsSaved(false);
+    // Get palette name auto when click auto dominant
+    suggestTitleForColors(nextColors, selectedTags);
   };
 
   // Dynamic state trigger sync when harmony selection occurs
