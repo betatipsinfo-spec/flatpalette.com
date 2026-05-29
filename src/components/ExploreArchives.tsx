@@ -1,0 +1,300 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { Sliders, Flame, Eye, Calendar, Tag, ShieldAlert, RotateCcw, ChevronDown } from 'lucide-react';
+import { Palette } from '../types';
+import PaletteCard from './PaletteCard';
+import { COLOR_NOMECLATURE_MAP } from '../data';
+
+interface ExploreArchivesProps {
+  palettes: Palette[];
+  onSelect: (p: Palette) => void;
+  onLike: (id: string, e: React.MouseEvent) => void;
+  onBookmark: (id: string, e: React.MouseEvent) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedHue: string;
+  setSelectedHue: (hue: string) => void;
+  selectedSort: 'likes' | 'views' | 'latest';
+  setSelectedSort: (sort: 'likes' | 'views' | 'latest') => void;
+}
+
+export default function ExploreArchives({
+  palettes,
+  onSelect,
+  onLike,
+  onBookmark,
+  searchQuery,
+  setSearchQuery,
+  selectedHue,
+  setSelectedHue,
+  selectedSort,
+  setSelectedSort,
+}: ExploreArchivesProps) {
+  
+  const [visibleCount, setVisibleCount] = useState<number>(24);
+
+  // Reset pagination count when queries or filter criteria list changes
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [searchQuery, selectedHue, selectedSort]);
+  
+  // Custom hue list with styling preview
+  const hueOptions = [
+    { name: 'all', label: 'All Hues', color: 'bg-slate-400' },
+    { name: 'blue', label: 'Blue / Cyan', color: 'bg-cyan-500' },
+    { name: 'red', label: 'Red / Ruby', color: 'bg-red-500' },
+    { name: 'orange', label: 'Orange / Amber', color: 'bg-orange-500' },
+    { name: 'yellow', label: 'Yellow / Gold', color: 'bg-yellow-400' },
+    { name: 'green', label: 'Green / Jade', color: 'bg-emerald-500' },
+    { name: 'pink', label: 'Pink / Violet', color: 'bg-pink-500' },
+    { name: 'purple', label: 'Purple / Magenta', color: 'bg-purple-600' },
+    { name: 'dark', label: 'Dark / Deep', color: 'bg-slate-900 border border-white/20' },
+    { name: 'light', label: 'Light / Soft', color: 'bg-white' },
+    { name: 'brown', label: 'Brown / Warm', color: 'bg-amber-950' },
+  ];
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    palettes.forEach(p => p.tags.forEach(t => set.add(t)));
+    return Array.from(set);
+  }, [palettes]);
+
+  // Comprehensive sorting and filtering matrix
+  const filteredPalettes = useMemo(() => {
+    let result = [...palettes];
+
+    // Filter by text search query (title, color tags or exact colors)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((p) => {
+        const matchesTitle = p.title.toLowerCase().includes(q);
+        const matchesTags = p.tags.some(t => t.toLowerCase().includes(q));
+        const matchesColors = p.colors.some(c => c.toLowerCase().includes(q));
+        
+        // Also match colors by natural name mapping
+        let matchesNomeclature = false;
+        Object.keys(COLOR_NOMECLATURE_MAP).forEach(key => {
+          if (q.includes(key) || key.includes(q)) {
+            const hexes = COLOR_NOMECLATURE_MAP[key];
+            const hasCommonColor = p.colors.some(c => 
+              hexes.some(hc => c.toLowerCase() === hc.toLowerCase())
+            );
+            if (hasCommonColor) matchesNomeclature = true;
+          }
+        });
+
+        return matchesTitle || matchesTags || matchesColors || matchesNomeclature;
+      });
+    }
+
+    // Filter by dominant baseline hue
+    if (selectedHue !== 'all') {
+      const hexesForHue = COLOR_NOMECLATURE_MAP[selectedHue] || [];
+      result = result.filter((p) => {
+        // If the palette colors match any of the target hue group colors
+        return p.colors.some((colorHex) => {
+          // Check if color matches mapped hexes directly
+          const isDirectMatch = hexesForHue.some(h => h.toLowerCase() === colorHex.toLowerCase());
+          
+          // Or tag checks if the hue name corresponds to a tag
+          const hasTag = p.tags.some(t => t.toLowerCase() === selectedHue.toLowerCase());
+          
+          return isDirectMatch || hasTag;
+        });
+      });
+    }
+
+    // Sort execution details
+    if (selectedSort === 'likes') {
+      result.sort((a, b) => b.likes - a.likes);
+    } else if (selectedSort === 'views') {
+      result.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else if (selectedSort === 'latest') {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    return result;
+  }, [palettes, searchQuery, selectedHue, selectedSort]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedHue('all');
+    setSelectedSort('likes');
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8" id="explore-archives-page">
+      
+      {/* Title Segment */}
+      <div className="border-b border-white/5 pb-5 mb-8">
+        <h2 className="text-2xl sm:text-3.5xl font-black text-white tracking-tight flex items-center gap-2.5">
+          <Sliders className="h-7 w-7 text-[#00FFD1]" />
+          <span>Color Discovery Archives</span>
+        </h2>
+        <p className="text-slate-400 text-xs sm:text-sm mt-1.5 font-medium">
+          Filter and sort through the world's most vibrant digital design color arrangements. Click a palette card block to view and export configs.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        {/* Left Column: Side-rail Filter Toggles */}
+        <div className="lg:col-span-1 space-y-6" id="filters-side-rail">
+          
+          {/* Active stats */}
+          <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-4 shadow-xl">
+            <div className="text-xs font-mono uppercase tracking-widest text-[#00FFD1] mb-1 font-bold">Index State</div>
+            <div className="text-sm font-bold text-white mb-2">{filteredPalettes.length} Palettes Found</div>
+            {selectedHue !== 'all' || selectedSort !== 'likes' || searchQuery !== '' ? (
+              <button
+                onClick={handleResetFilters}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-[#00FFD1] hover:text-white text-xs font-bold transition-colors border border-white/10"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset Active Filters</span>
+              </button>
+            ) : null}
+          </div>
+
+          {/* Sort Controller Options */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5 font-bold">
+              <Flame className="h-3.5 w-3.5 text-pink-500" />
+              <span>Sort Grid Matrix</span>
+            </h4>
+            <div className="flex flex-col gap-1">
+              {[
+                { name: 'likes', label: 'Trending & Likes', icon: Flame },
+                { name: 'views', label: 'Most Viewed Feed', icon: Eye },
+                { name: 'latest', label: 'Freshly Submitted', icon: Calendar },
+              ].map((option) => {
+                const Icon = option.icon;
+                const isSelected = selectedSort === option.name;
+                return (
+                  <button
+                    key={option.name}
+                    id={`sort-btn-${option.name}`}
+                    onClick={() => setSelectedSort(option.name as any)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      isSelected 
+                        ? 'bg-white/15 border border-white/25 text-white shadow-lg' 
+                        : 'border border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className={`h-3.5 w-3.5 ${isSelected ? 'text-[#00FFD1]' : 'text-slate-400'}`} />
+                    <span>{option.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Dominant Hue Filter Group */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">
+              Dominant Base Hue
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1">
+              {hueOptions.map((hue) => {
+                const isSelected = selectedHue === hue.name;
+                return (
+                  <button
+                    key={hue.name}
+                    id={`hue-btn-${hue.name}`}
+                    onClick={() => setSelectedHue(hue.name)}
+                    className={`flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-xs font-bold text-left transition-all ${
+                      isSelected 
+                        ? 'bg-white/15 text-[#00FFD1] border border-white/15 shadow-md' 
+                        : 'border border-transparent text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className={`h-3 w-3 rounded-full ${hue.color}`} />
+                    <span>{hue.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Preset Tag Explorer */}
+          <div className="space-y-3 lg:block hidden">
+            <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5 font-bold">
+              <Tag className="h-3.5 w-3.5 text-[#00FFD1]" />
+              <span>Keyword Tags</span>
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {allTags.map((tag) => {
+                const isSelected = searchQuery.toLowerCase() === tag.toLowerCase();
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setSearchQuery(isSelected ? '' : tag)}
+                    className={`text-[10px] px-3 py-1 rounded-full transition-all font-bold ${
+                      isSelected 
+                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black hover:scale-105' 
+                        : 'bg-white/5 text-slate-300 hover:bg-white/15 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    #{tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Palette Grid Matrix Showcase */}
+        <div className="lg:col-span-3">
+          {filteredPalettes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950 p-12 text-center" id="empty-search-state">
+              <ShieldAlert className="h-12 w-12 text-slate-500 mx-auto" />
+              <h3 className="text-lg font-bold text-slate-250 mt-4">No matching architectural palettes</h3>
+              <p className="text-slate-400 text-xs mt-2 max-w-sm mx-auto">
+                No indexed color systems matched your filters. Try clearing search keywords or selecting different color parameters.
+              </p>
+              <button
+                onClick={handleResetFilters}
+                className="mt-6 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg text-white text-xs font-bold shadow-md hover:scale-105 transition-all"
+              >
+                Reset Database Coordinates
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div 
+                className="grid grid-cols-1 md:grid-cols-3 gap-6" 
+                id="archives-grid-matrix"
+              >
+                {filteredPalettes.slice(0, visibleCount).map((p, idx) => (
+                  <PaletteCard
+                    key={p.id}
+                    palette={p}
+                    index={idx}
+                    onSelect={onSelect}
+                    onLike={onLike}
+                    onBookmark={onBookmark}
+                  />
+                ))}
+              </div>
+
+              {/* Dynamic load expansion trigger if there are more archives in the database */}
+              {filteredPalettes.length > visibleCount && (
+                <div className="text-center pt-4" id="archives-load-more-section">
+                  <button
+                    id="archives-load-more-btn"
+                    onClick={() => setVisibleCount((prev) => prev + 24)}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-white/10 hover:border-[#00FFD1]/50 text-slate-200 hover:text-white bg-white/5 hover:bg-[#00FFD1]/10 text-xs font-bold tracking-wider uppercase transition-all shadow-md active:scale-95 group cursor-pointer"
+                  >
+                    <ChevronDown className="h-4 w-4 text-[#00FFD1] group-hover:translate-y-0.5 transition-transform" />
+                    <span>Load More Archives</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}

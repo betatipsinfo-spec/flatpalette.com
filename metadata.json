@@ -1,0 +1,6 @@
+{
+  "name": "flatpalette",
+  "description": "High-Utility Color Architecture & Design Showcase Tool. Discover, generate, export, and preview vibrant color palettes instantly with interactive design mockups.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
