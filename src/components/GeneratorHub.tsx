@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Lock, Unlock, RefreshCw, Copy, Check, Info, Sliders, Save, Sparkles, X, Tag, Image as ImageIcon, Pipette, Upload, CheckCircle2 } from 'lucide-react';
-import { generateRandomHex, generateHarmony, getContrastColor, hexToRgbString } from '../utils';
+import { generateRandomHex, generateHarmony, getContrastColor, hexToRgbString, hexToHsl } from '../utils';
 
 interface GeneratorHubProps {
   onAddSubittedPalette: (title: string, colors: string[], tags: string[]) => void;
@@ -13,6 +14,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
   const [locked, setLocked] = useState<boolean[]>([false, false, false, false, false]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [harmonyType, setHarmonyType] = useState<'random' | 'monochromatic' | 'analogous' | 'complementary' | 'triadic' | 'split-complementary'>('random');
+  const [colorBlindnessMode, setColorBlindnessMode] = useState<'normal' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia'>('normal');
   const [isSaved, setIsSaved] = useState(false);
   const [saveTitle, setSaveTitle] = useState('');
   const [isSuggestingTitle, setIsSuggestingTitle] = useState(false);
@@ -56,12 +58,126 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
 
   // Suffix parameters for multi-select tags state control
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [popularTags, setPopularTags] = useState<string[]>(() => {
+    const saved = localStorage.getItem('flatpalette_popular_tags_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        // Fallback
+      }
+    }
+    return ['Cyberpunk', 'Neon', 'Vibrant', 'Dark', 'Retro', 'Pastel', 'Minimal', 'Nature', 'Vintage', 'Muted', 'Warm', 'Modern', 'Luxury'];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('flatpalette_popular_tags_v1', JSON.stringify(popularTags));
+  }, [popularTags]);
+
+  // Helper to score how relevant a tag is to the current 5-color palette
+  const getTagRelevanceScore = (tag: string, paletteColors: string[]) => {
+    try {
+      const hsls = paletteColors.map(c => hexToHsl(c));
+      const tagLower = tag.toLowerCase();
+
+      // Basic stats
+      const avgS = hsls.reduce((acc, c) => acc + c.s, 0) / hsls.length;
+      const avgL = hsls.reduce((acc, c) => acc + c.l, 0) / hsls.length;
+      
+      const countNeon = hsls.filter(c => c.s >= 80 && c.l >= 40 && c.l <= 75).length;
+      const countVibrant = hsls.filter(c => c.s >= 65).length;
+      const countDark = hsls.filter(c => c.l <= 32).length;
+      const countPastel = hsls.filter(c => c.l >= 70 && c.s <= 45).length;
+      const countWarm = hsls.filter(c => (c.h >= 0 && c.h <= 70) || (c.h >= 320 && c.h <= 360)).length;
+      const countCool = hsls.filter(c => c.h >= 165 && c.h <= 270).length;
+      const countGreen = hsls.filter(c => c.h >= 75 && c.h <= 160).length;
+      // Gold/Orange-yellow: Hue 35 to 58, Saturation >= 50, Lightness 35 to 75
+      const countGold = hsls.filter(c => c.h >= 35 && c.h <= 58 && c.s >= 45 && c.l >= 35 && c.l <= 75).length;
+      const countMuted = hsls.filter(c => c.s <= 40).length;
+      const countGrayscale = hsls.filter(c => c.s <= 15).length;
+
+      let score = 0;
+
+      if (tagLower === 'cyberpunk') {
+        if (countNeon > 0) score += 4;
+        if (countDark > 0) score += 2;
+        const hasPinkOrBlue = hsls.some(c => (c.h >= 280 && c.h <= 350) || (c.h >= 180 && c.h <= 245));
+        if (hasPinkOrBlue) score += 4;
+      } else if (tagLower === 'neon') {
+        score += countNeon * 5;
+        if (avgS > 75) score += 3;
+      } else if (tagLower === 'vibrant') {
+        score += countVibrant * 3;
+        if (avgS > 65) score += 2;
+      } else if (tagLower === 'dark') {
+        score += countDark * 5;
+        if (avgL < 35) score += 3;
+      } else if (tagLower === 'retro') {
+        const hasRetroHue = hsls.some(c => (c.h >= 15 && c.h <= 45) || (c.h >= 160 && c.h <= 200));
+        if (hasRetroHue) score += 4;
+        if (countMuted > 0) score += 2;
+      } else if (tagLower === 'pastel') {
+        score += countPastel * 5;
+        if (avgL > 70 && avgS < 45) score += 3;
+      } else if (tagLower === 'minimal') {
+        score += countGrayscale * 4;
+        if (avgS < 25) score += 2;
+      } else if (tagLower === 'nature') {
+        score += countGreen * 5;
+        const hasNatureEarthTone = hsls.some(c => c.h >= 20 && c.h <= 60 && c.l < 55);
+        if (hasNatureEarthTone) score += 3;
+      } else if (tagLower === 'vintage') {
+        const hasSepiaOrBeige = hsls.some(c => c.h >= 25 && c.h <= 48 && c.s < 60);
+        if (hasSepiaOrBeige) score += 5;
+        if (countMuted > 0) score += 2;
+      } else if (tagLower === 'muted') {
+        score += countMuted * 4;
+        if (avgS < 40) score += 2;
+      } else if (tagLower === 'warm') {
+        score += countWarm * 5;
+        if (countWarm >= 3) score += 2;
+      } else if (tagLower === 'modern') {
+        score += countCool * 3;
+        const hasSlate = hsls.some(c => c.h >= 190 && c.h <= 230 && c.s < 40);
+        if (hasSlate) score += 4;
+      } else if (tagLower === 'luxury') {
+        score += countGold * 5;
+        const hasDeepBlackAndPurple = hsls.some(c => c.l < 15 || (c.h >= 240 && c.h <= 290 && c.l < 40));
+        if (hasDeepBlackAndPurple) score += 4;
+      }
+
+      return score;
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  // Sort popular tags dynamically based on match with the dominant base hue & color properties
+  const sortedPopularTagsByHue = React.useMemo(() => {
+    return [...popularTags].sort((a, b) => {
+      const scoreA = getTagRelevanceScore(a, colors);
+      const scoreB = getTagRelevanceScore(b, colors);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      return a.localeCompare(b);
+    });
+  }, [popularTags, colors]);
+
   const [confirmTagModal, setConfirmTagModal] = useState<{
     isOpen: boolean;
     tagToRemove: string;
   }>({
     isOpen: false,
     tagToRemove: ''
+  });
+
+  const [confirmDeletePresetModal, setConfirmDeletePresetModal] = useState<{
+    isOpen: boolean;
+    tagToDelete: string;
+  }>({
+    isOpen: false,
+    tagToDelete: ''
   });
 
   // Image Analyzer State Section
@@ -245,9 +361,22 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
     }
   };
 
+  const handleTogglePopularTag = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(prev => prev.filter(t => t !== tag));
+    } else {
+      setSelectedTags(prev => [...prev, tag]);
+    }
+  };
+
   const confirmRemoveTag = () => {
     setSelectedTags(prev => prev.filter(t => t !== confirmTagModal.tagToRemove));
     setConfirmTagModal({ isOpen: false, tagToRemove: '' });
+  };
+
+  const confirmDeletePresetTag = () => {
+    setPopularTags(prev => prev.filter(t => t !== confirmDeletePresetModal.tagToDelete));
+    setConfirmDeletePresetModal({ isOpen: false, tagToDelete: '' });
   };
 
   // Generate new colors respecting locked state
@@ -355,29 +484,50 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
           </p>
         </div>
 
-        {/* Harmony Category Dropdown selector */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-400 font-mono uppercase shrink-0 hidden sm:inline font-bold">Harmony Formula:</span>
-          <select
-            id="generator-harmony-select"
-            value={harmonyType}
-            onChange={(e) => setHarmonyType(e.target.value as any)}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white outline-none backdrop-blur-md focus:border-[#00FFD1]/40"
-          >
-            <option value="random" className="bg-slate-950 text-white">🌟 Full Independent Seeds (Random)</option>
-            <option value="monochromatic" className="bg-slate-950 text-white">🎨 Monochromatic Harmony</option>
-            <option value="analogous" className="bg-slate-950 text-white">🌈 Analogous Hue Shifts</option>
-            <option value="complementary" className="bg-slate-950 text-white">☯️ Complementary Dualism</option>
-            <option value="triadic" className="bg-slate-950 text-white">🔺 Triadic Splits (120°)</option>
-            <option value="split-complementary" className="bg-slate-950 text-white">🏹 Split-Complementary Mode</option>
-          </select>
+        {/* Controls block for Harmony & Color Blindness */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Harmony Category Dropdown selector */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-[10px] font-semibold text-slate-400 font-mono uppercase shrink-0 hidden sm:inline font-bold">Harmony Formula:</span>
+            <select
+              id="generator-harmony-select"
+              value={harmonyType}
+              onChange={(e) => setHarmonyType(e.target.value as any)}
+              className="rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-white outline-none backdrop-blur-md focus:border-[#00FFD1]/40 cursor-pointer"
+            >
+              <option value="random" className="bg-slate-950 text-white">🌟 Full Independent Seeds (Random)</option>
+              <option value="monochromatic" className="bg-slate-950 text-white">🎨 Monochromatic Harmony</option>
+              <option value="analogous" className="bg-slate-950 text-white">🌈 Analogous Hue Shifts</option>
+              <option value="complementary" className="bg-slate-950 text-white">☯️ Complementary Dualism</option>
+              <option value="triadic" className="bg-slate-950 text-white">🔺 Triadic Splits (120°)</option>
+              <option value="split-complementary" className="bg-slate-950 text-white">🏹 Split-Complementary Mode</option>
+            </select>
+          </div>
+
+          {/* Color Blindness Simulator selector */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-[10px] font-semibold text-slate-400 font-mono uppercase shrink-0 hidden sm:inline font-bold">Simulator:</span>
+            <select
+              id="generator-blindness-select"
+              value={colorBlindnessMode}
+              onChange={(e) => setColorBlindnessMode(e.target.value as any)}
+              className="rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-white outline-none backdrop-blur-md focus:border-[#00FFD1]/40 cursor-pointer"
+            >
+              <option value="normal" className="bg-slate-950 text-white">👀 Normal Vision</option>
+              <option value="protanopia" className="bg-slate-950 text-white">🔴 Protanopia (Red-Blind)</option>
+              <option value="deuteranopia" className="bg-slate-950 text-white">🟢 Deuteranopia (Green-Blind)</option>
+              <option value="tritanopia" className="bg-slate-950 text-white">🔵 Tritanopia (Blue-Blind)</option>
+              <option value="achromatopsia" className="bg-slate-950 text-white">⚫ Achromatopsia (No Color)</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Main color generators strip grid */}
       <div 
-        className="grid grid-cols-1 md:grid-cols-5 h-[360px] md:h-[460px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative mb-8"
+        className="grid grid-cols-1 md:grid-cols-5 h-[360px] md:h-[460px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative mb-8 transition-all duration-300"
         id="generator-panels-matrix"
+        style={colorBlindnessMode !== 'normal' ? { filter: `url(#sim-${colorBlindnessMode})` } : undefined}
       >
         {colors.map((hex, index) => {
           const contrast = getContrastColor(hex);
@@ -481,6 +631,40 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {colorBlindnessMode !== 'normal' && (
+          <motion.div 
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-8 p-3.5 rounded-xl border border-[#00FFD1]/20 bg-[#00FFD1]/5 text-xs text-slate-300 flex items-center gap-3 backdrop-blur-xs"
+          >
+            <span className="flex h-2.5 w-2.5 rounded-full bg-[#00FFD1] animate-pulse shrink-0" />
+            <div className="flex-1 text-[11px] sm:text-xs">
+              <span className="font-bold text-[#00FFD1] uppercase mr-1.5">
+                {colorBlindnessMode === 'protanopia' && '🔴 Protanopia (Red-Blind):'}
+                {colorBlindnessMode === 'deuteranopia' && '🟢 Deuteranopia (Green-Blind):'}
+                {colorBlindnessMode === 'tritanopia' && '🔵 Tritanopia (Blue-Blind):'}
+                {colorBlindnessMode === 'achromatopsia' && '⚫ Achromatopsia (No Color):'}
+              </span>
+              <span>
+                {colorBlindnessMode === 'protanopia' && 'Simulates inability to perceive red light. Red shades appear greenish/gray, and colors are shifted relative to blue/yellow.'}
+                {colorBlindnessMode === 'deuteranopia' && 'Simulates inability to perceive green light. Red/green color distinction is reduced, yellow and blue hues remain dominant.'}
+                {colorBlindnessMode === 'tritanopia' && 'Simulates inability to perceive blue light. Blue appears greenish, yellow appears pinkish/red.'}
+                {colorBlindnessMode === 'achromatopsia' && 'Simulates absolute lack of color receptors. Highly useful for inspecting high-contrast visibility and structural text legibility.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setColorBlindnessMode('normal')}
+              className="text-[#00FFD1] hover:text-white transition-colors font-semibold underline text-[10px] uppercase cursor-pointer shrink-0"
+            >
+              Reset Vision
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
 
@@ -661,51 +845,137 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
 
             {/* Multi-select category tags selector */}
             <div className="space-y-1.5 mt-1 border-t border-white/5 pt-2">
-              <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                Category Tags (Multi-Select):
-              </label>
-              
-              {/* Chosen tags bar */}
-              <div className="flex flex-wrap gap-1 min-h-[30px] p-1.5 rounded-lg bg-slate-950/40 border border-white/5">
-                {selectedTags.length === 0 ? (
-                  <span className="text-slate-500 text-[10px] italic font-medium">No category tags active. Click below to select...</span>
-                ) : (
-                  selectedTags.map((tag) => (
-                    <span 
-                      key={tag} 
-                      onClick={() => handleTagClick(tag)}
-                      className="bg-purple-900/40 hover:bg-red-950/40 border border-purple-500/30 hover:border-red-500/30 text-purple-300 hover:text-red-300 text-[9.5px] px-1.5 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-all font-semibold group"
-                      title="Click to remove tag"
-                    >
-                      <span>#{tag}</span>
-                      <span className="text-[11px] text-purple-400 group-hover:text-red-400 leading-none">&times;</span>
-                    </span>
-                  ))
-                )}
-              </div>
 
               {/* Preset selection flow */}
-              <div className="space-y-1">
-                <span className="text-[9px] font-mono text-slate-500 block">Click to toggle popular tags:</span>
-                <div className="flex flex-wrap gap-1 max-h-[72px] overflow-y-auto pr-1">
-                  {['Cyberpunk', 'Neon', 'Vibrant', 'Dark', 'Retro', 'Pastel', 'Minimal', 'Nature', 'Vintage', 'Muted', 'Warm', 'Modern', 'Luxury'].map((tag) => {
-                    const isSelected = selectedTags.includes(tag);
-                    return (
-                      <button
-                        type="button"
-                        key={tag}
-                        onClick={() => handleTagClick(tag)}
-                        className={`text-[9.5px] px-1.5 py-0.5 rounded transition-all font-semibold cursor-pointer ${
-                          isSelected 
-                            ? 'bg-[#00FFD1]/20 text-[#00FFD1] border border-[#00FFD1]/30' 
-                            : 'bg-white/5 text-slate-400 hover:text-white border border-transparent hover:border-white/10'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono text-slate-400 font-bold block">Click to toggle popular tags:</span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      placeholder="+ Add preset tag"
+                      id="new-preset-tag-input"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = e.currentTarget.value.trim();
+                          if (val) {
+                            const formatted = val.charAt(0).toUpperCase() + val.slice(1);
+                            if (!popularTags.includes(formatted)) {
+                              setPopularTags(prev => [...prev, formatted]);
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }
+                      }}
+                      className="w-24 bg-white/5 border border-white/10 hover:border-white/20 text-[8.5px] text-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-[#00FFD1]/30 transition-all placeholder-slate-500 font-medium"
+                      title="Type a tag and press Enter to save as preset badge"
+                    />
+                  </div>
                 </div>
+                <motion.div 
+                  layout
+                  className="flex flex-wrap gap-1 max-h-[72px] overflow-y-auto pr-1"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {sortedPopularTagsByHue.map((tag) => {
+                      const isSelected = selectedTags.includes(tag);
+                      return (
+                        <motion.div
+                          key={tag}
+                          initial={{ opacity: 0, scale: 0.82 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.82 }}
+                          transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                          layout
+                          className={`group relative inline-flex items-center gap-1 text-[9.5px] rounded transition-all font-semibold border ${
+                            isSelected 
+                              ? 'bg-purple-900/40 border-purple-500/30 text-purple-300 hover:bg-purple-950/40' 
+                              : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+                          }`}
+                        >
+                          {/* Tag click toggle trigger */}
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePopularTag(tag)}
+                            className="px-1.5 py-0.5 cursor-pointer font-semibold outline-none select-none text-left"
+                          >
+                            #{tag}
+                          </button>
+ 
+                          {/* Tag delete/remove from preset list button (on hover) */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeletePresetModal({
+                                isOpen: true,
+                                tagToDelete: tag
+                              });
+                            }}
+                            className="text-[11px] leading-none hover:text-red-400 text-slate-500 opacity-0 group-hover:opacity-100 pr-1 transition-opacity cursor-pointer border-l border-white/10 pl-1"
+                            title={`Remove ${tag} preset`}
+                          >
+                            &times;
+                          </button>
+                        </motion.div>
+                      );
+                    })}
+                    {sortedPopularTagsByHue.length === 0 && (
+                      <motion.span 
+                        key="empty-popular"
+                        initial={{ opacity: 0, y: -2 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-[10px] text-slate-500 italic"
+                      >
+                        No popular tags. Type one above to store!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+
+              {/* Chosen tags bar */}
+              <div className="space-y-1.5 pt-1.5">
+                <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  Category Tags (Multi-Select):
+                </label>
+                <motion.div 
+                  layout
+                  className="flex flex-wrap gap-1 min-h-[30px] p-1.5 rounded-lg bg-slate-950/40 border border-white/5 overflow-hidden"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {selectedTags.length === 0 ? (
+                      <motion.span 
+                        key="empty-chosen"
+                        initial={{ opacity: 0, y: -2 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-slate-500 text-[10px] italic font-medium"
+                      >
+                        No category tags active. Click above to select...
+                      </motion.span>
+                    ) : (
+                      selectedTags.map((tag) => (
+                        <motion.span 
+                          key={tag} 
+                          initial={{ opacity: 0, scale: 0.82 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.82 }}
+                          transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                          layout
+                          onClick={() => handleTagClick(tag)}
+                          className="bg-purple-900/40 hover:bg-red-950/40 border border-purple-500/30 hover:border-red-500/30 text-purple-300 hover:text-red-300 text-[9.5px] px-1.5 py-0.5 rounded flex items-center gap-1 cursor-pointer transition-all font-semibold group"
+                          title="Click to remove tag"
+                        >
+                          <span>#{tag}</span>
+                          <span className="text-[11px] text-purple-400 group-hover:text-red-400 leading-none">&times;</span>
+                        </motion.span>
+                      ))
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
 
               {/* Manual input tag addition */}
@@ -799,6 +1069,82 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
           </div>
         </div>
       )}
+
+      {/* Preset Tag Removal Deletion Confirmation Modal */}
+      {confirmDeletePresetModal.isOpen && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs transition-opacity"
+            onClick={() => setConfirmDeletePresetModal({ isOpen: false, tagToDelete: '' })}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl space-y-4 z-10 text-left animate-in fade-in zoom-in-95 duration-155">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <span className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-[#00FFD1]" />
+                <span>Remove Preset Tag</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setConfirmDeletePresetModal({ isOpen: false, tagToDelete: '' })}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              Are you sure you want to delete the preset tag <strong className="text-pink-400 font-bold">#{confirmDeletePresetModal.tagToDelete}</strong> from your preset tag options? This will remove it from the list permanently.
+            </p>
+            
+            <div className="flex items-center justify-end gap-3.5 pt-1.5">
+              <button
+                type="button"
+                onClick={() => setConfirmDeletePresetModal({ isOpen: false, tagToDelete: '' })}
+                className="px-4.5 py-2 rounded-lg border border-white/10 text-slate-350 hover:text-white hover:bg-white/5 text-[11px] font-bold tracking-wide uppercase transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePresetTag}
+                className="px-4.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold tracking-wide uppercase transition-all shadow-md cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SVG Color Blindness Filters Definition inside hidden container */}
+      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          <filter id="sim-protanopia" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0.56667 0.43333 0 0 0
+                                                 0.55833 0.44167 0 0 0
+                                                 0 0.24167 0.75833 0 0
+                                                 0 0 0 1 0"/>
+          </filter>
+          <filter id="sim-deuteranopia" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0.625 0.375 0 0 0
+                                                 0.7 0.3 0 0 0
+                                                 0 0.3 0.7 0 0
+                                                 0 0 0 1 0"/>
+          </filter>
+          <filter id="sim-tritanopia" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0.95 0.05 0 0 0
+                                                 0 0.43333 0.56667 0 0
+                                                 0 0.475 0.525 0 0
+                                                 0 0 0 1 0"/>
+          </filter>
+          <filter id="sim-achromatopsia" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0.299 0.587 0.114 0 0
+                                                 0.299 0.587 0.114 0 0
+                                                 0.299 0.587 0.114 0 0
+                                                 0 0 0 1 0"/>
+          </filter>
+        </defs>
+      </svg>
 
     </div>
   );

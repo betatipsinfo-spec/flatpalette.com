@@ -694,6 +694,8 @@ export default function App() {
                 onLike={handleLikePalette}
                 onBookmark={handleBookmarkPalette}
                 siteConfig={siteConfig}
+                allPalettes={palettes}
+                onSelectPalette={(p) => { setSelectedPalette(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               />
             ) : (
               /* Fallback to Tab Matrix */

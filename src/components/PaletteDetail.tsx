@@ -7,9 +7,11 @@ import {
   hexToHslString,
   buildTailwindConfig,
   buildCssVariables,
-  buildJsonCode
+  buildJsonCode,
+  getContrastRatio
 } from '../utils';
 import MockupPreviews from './MockupPreviews';
+import PaletteCard from './PaletteCard';
 
 interface PaletteDetailProps {
   palette: Palette;
@@ -17,13 +19,64 @@ interface PaletteDetailProps {
   onLike: (id: string, e: React.MouseEvent) => void;
   onBookmark: (id: string, e: React.MouseEvent) => void;
   siteConfig?: SiteConfig;
+  allPalettes: Palette[];
+  onSelectPalette: (palette: Palette) => void;
 }
 
-export default function PaletteDetail({ palette, onClose, onLike, onBookmark, siteConfig }: PaletteDetailProps) {
+export default function PaletteDetail({ 
+  palette, 
+  onClose, 
+  onLike, 
+  onBookmark, 
+  siteConfig,
+  allPalettes,
+  onSelectPalette
+}: PaletteDetailProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [copiedType, setCopiedType] = useState<'hex' | 'rgb' | 'hsl' | null>(null);
   const [activeCodeTab, setActiveCodeTab] = useState<'tailwind' | 'css' | 'json'>('tailwind');
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Limit of visible related palettes
+  const [visibleRelatedLimit, setVisibleRelatedLimit] = useState(12);
+
+  // Compute related palettes based on common tags, fallback to popular ones, excluding current
+  const relatedPalettes = React.useMemo(() => {
+    if (!allPalettes) return [];
+    return allPalettes
+      .filter((p) => p.id !== palette.id && p.approved)
+      .map((p) => {
+        const sharedTagsCount = p.tags.filter((t) => palette.tags.includes(t)).length;
+        return { p, score: sharedTagsCount };
+      })
+      .sort((a, b) => b.score - a.score || b.p.likes - a.p.likes)
+      .map((item) => item.p);
+  }, [allPalettes, palette]);
+
+  const displayedRelated = relatedPalettes.slice(0, visibleRelatedLimit);
+
+  // Contrast Ratio Analyzer States
+  const [analyzerBg, setAnalyzerBg] = useState(palette.colors[0]);
+  const [analyzerFg, setAnalyzerFg] = useState(palette.colors[palette.colors.length - 1] || palette.colors[1]);
+  const [analyzerText, setAnalyzerText] = useState("Empower accessibility and design with perfect clarity.");
+  const [previewSize, setPreviewSize] = useState<'normal' | 'large'>('normal');
+
+  // Social Share Card Generator States
+  const [socialTitle, setSocialTitle] = useState(palette.title);
+  const [socialSubtitle, setSocialSubtitle] = useState('Creative color spectrum curated on flatpalette.com');
+  const [socialStyle, setSocialStyle] = useState<'columns' | 'bento' | 'minimal'>('columns');
+  const [socialShowTags, setSocialShowTags] = useState(true);
+  const [socialShowBrand, setSocialShowBrand] = useState(true);
+  const [isDownloadingSocialCard, setIsDownloadingSocialCard] = useState(false);
+
+  React.useEffect(() => {
+    if (palette.colors && palette.colors.length > 0) {
+      setAnalyzerBg(palette.colors[0]);
+      setAnalyzerFg(palette.colors[palette.colors.length - 1] || palette.colors[1]);
+    }
+    setSocialTitle(palette.title);
+  }, [palette]);
+
 
   // Sharing states & Deep-link calculations
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -217,6 +270,378 @@ export default function PaletteDetail({ palette, onClose, onLike, onBookmark, si
     link.download = `${palette.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-palette.png`;
     link.href = dataUrl;
     link.click();
+  };
+
+  const handleDownloadSocialCard = () => {
+    setIsDownloadingSocialCard(true);
+    
+    // Slight artificial delay for stunning UI states
+    setTimeout(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 630;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setIsDownloadingSocialCard(false);
+        return;
+      }
+
+      const colorsCount = palette.colors.length;
+
+      if (socialStyle === 'columns') {
+        // --- STYLE 1: Spectrum Columns ---
+        // Solid deep dark space background
+        ctx.fillStyle = '#0a0f1d';
+        ctx.fillRect(0, 0, 1200, 630);
+
+        // Radial shine on top left
+        const radGrad = ctx.createRadialGradient(240, 315, 50, 240, 315, 450);
+        radGrad.addColorStop(0, 'rgba(0, 255, 209, 0.05)');
+        radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = radGrad;
+        ctx.fillRect(0, 0, 480, 630);
+
+        // Sidebar divider
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(480, 0);
+        ctx.lineTo(480, 630);
+        ctx.stroke();
+
+        // 1. Curated metadata line
+        ctx.fillStyle = siteConfig?.primaryNeonAccent || '#00FFD1';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('CURATED SPECIFICATION • COOPERATIVE CC0', 45, 75);
+
+        // 2. Title header
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 38px sans-serif';
+        const maxTitleW = 390;
+        const words = socialTitle.split(' ');
+        let currentLine = '';
+        const titleLines: string[] = [];
+        
+        for (let n = 0; n < words.length; n++) {
+          let testLine = currentLine + words[n] + ' ';
+          let metrics = ctx.measureText(testLine);
+          if (metrics.width > maxTitleW && n > 0) {
+            titleLines.push(currentLine);
+            currentLine = words[n] + ' ';
+          } else {
+            currentLine = testLine;
+          }
+        }
+        titleLines.push(currentLine);
+
+        let currentY = 120;
+        titleLines.forEach((line) => {
+          ctx.fillText(line.trim().toUpperCase(), 45, currentY);
+          currentY += 46;
+        });
+
+        // 3. Custom subtitle
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 15px sans-serif';
+        const subWords = socialSubtitle.split(' ');
+        let currentSubLine = '';
+        const subLines: string[] = [];
+        
+        for (let n = 0; n < subWords.length; n++) {
+          let testLine = currentSubLine + subWords[n] + ' ';
+          let metrics = ctx.measureText(testLine);
+          if (metrics.width > maxTitleW && n > 0) {
+            subLines.push(currentSubLine);
+            currentSubLine = subWords[n] + ' ';
+          } else {
+            currentSubLine = testLine;
+          }
+        }
+        subLines.push(currentSubLine);
+
+        currentY += 15;
+        subLines.forEach((line) => {
+          ctx.fillText(line.trim(), 45, currentY);
+          currentY += 24;
+        });
+
+        // 4. Tags
+        if (socialShowTags) {
+          ctx.font = '700 13px monospace';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          let tagsLabel = palette.tags.map(t => `#${t}`).join('  ');
+          if (tagsLabel.length > 42) tagsLabel = tagsLabel.slice(0, 42) + '...';
+          ctx.fillText(tagsLabel, 45, currentY + 30);
+        }
+
+        // 5. Watermark info block
+        if (socialShowBrand) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+          ctx.fillRect(45, 525, 390, 45);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.strokeRect(45, 525, 390, 45);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText('DISCOVER MORE AT HTTPS://FLATPALETTE.COM', 65, 552);
+        }
+
+        // 6. Draw Columns of colors on the right side
+        const colWidth = 720 / colorsCount;
+        palette.colors.forEach((hex, i) => {
+          const colX = 480 + i * colWidth;
+          ctx.fillStyle = hex;
+          ctx.fillRect(colX, 0, colWidth, 630);
+
+          const contrast = getContrastColor(hex);
+          
+          // Slot numbering
+          ctx.fillStyle = contrast === '#ffffff' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.35)';
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`0${i+1}`, colX + colWidth / 2, 45);
+
+          // Hex string rotated vertical or shown at bottom
+          ctx.fillStyle = contrast;
+          ctx.font = 'bold 18px monospace';
+          ctx.fillText(hex.toUpperCase(), colX + colWidth / 2, 580);
+        });
+        
+        ctx.textAlign = 'left'; // Reset
+
+      } else if (socialStyle === 'bento') {
+        // --- STYLE 2: Bento Swatches ---
+        ctx.fillStyle = '#070a13';
+        ctx.fillRect(0, 0, 1200, 630);
+
+        // Sidebar dividing line
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(400, 0);
+        ctx.lineTo(400, 630);
+        ctx.stroke();
+
+        // Left sidebar texting
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('FLATPALETTE BENTO METRICS', 45, 75);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 34px sans-serif';
+        const maxSidebarW = 310;
+        const words = socialTitle.split(' ');
+        let currentLine = '';
+        const titleLines: string[] = [];
+        
+        for (let n = 0; n < words.length; n++) {
+          let testLine = currentLine + words[n] + ' ';
+          let metrics = ctx.measureText(testLine);
+          if (metrics.width > maxSidebarW && n > 0) {
+            titleLines.push(currentLine);
+            currentLine = words[n] + ' ';
+          } else {
+            currentLine = testLine;
+          }
+        }
+        titleLines.push(currentLine);
+
+        let currentY = 120;
+        titleLines.forEach((line) => {
+          ctx.fillText(line.trim().toUpperCase(), 45, currentY);
+          currentY += 40;
+        });
+
+        // custom sub info
+        ctx.fillStyle = '#64748b';
+        ctx.font = '500 13px sans-serif';
+        const subWords = socialSubtitle.split(' ');
+        let currentSubLine = '';
+        const subLines: string[] = [];
+        
+        for (let n = 0; n < subWords.length; n++) {
+          let testLine = currentSubLine + subWords[n] + ' ';
+          let metrics = ctx.measureText(testLine);
+          if (metrics.width > maxSidebarW && n > 0) {
+            subLines.push(currentSubLine);
+            currentSubLine = subWords[n] + ' ';
+          } else {
+            currentSubLine = testLine;
+          }
+        }
+        subLines.push(currentSubLine);
+
+        currentY += 15;
+        subLines.forEach((line) => {
+          ctx.fillText(line.trim(), 45, currentY);
+          currentY += 21;
+        });
+
+        // Tags
+        if (socialShowTags) {
+          ctx.fillStyle = siteConfig?.primaryNeonAccent || '#00FFD1';
+          ctx.font = '700 11px monospace';
+          let tagsLabel = palette.tags.map(t => `#${t}`).join('  ');
+          if (tagsLabel.length > 36) tagsLabel = tagsLabel.slice(0, 36) + '...';
+          ctx.fillText(tagsLabel, 45, currentY + 30);
+        }
+
+        // Brand footnote
+        if (socialShowBrand) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText('DESIGNED ON HTTPS://FLATPALETTE.COM', 45, 555);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.font = 'normal 10px sans-serif';
+          ctx.fillText('CC0 Public Domain Creative Commons Spec', 45, 575);
+        }
+
+        // Draw Swatches
+        const drawGridTile = (x: number, y: number, w: number, h: number, hex: string, label: string) => {
+          ctx.save();
+          ctx.beginPath();
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, w, h, 16);
+          } else {
+            ctx.rect(x, y, w, h);
+          }
+          ctx.fillStyle = hex;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          const contrast = getContrastColor(hex);
+          ctx.fillStyle = contrast;
+          ctx.font = 'bold 18px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(hex.toUpperCase(), x + w/2, y + h - 25);
+
+          ctx.fillStyle = contrast === '#ffffff' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.4)';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(label, x + w/2, y + 25);
+          ctx.restore();
+        };
+
+        const g = 18;
+        const s1x = 400 + 40;
+        const s1y = 40;
+        const s1w = 340;
+        const s1h = 340;
+
+        const s2x = 400 + 40 + 340 + g;
+        const s2y = 40;
+        const s2w = 340;
+        const s2h = 160;
+
+        const s3x = 400 + 40 + 340 + g;
+        const s3y = 40 + 160 + g;
+        const s3w = 161;
+        const s3h = 160;
+
+        const s4x = 400 + 40 + 340 + g + 161 + g;
+        const s4y = 40 + 160 + g;
+        const s4w = 161;
+        const s4h = 160;
+
+        const s5x = 400 + 40;
+        const s5y = 40 + 340 + g;
+        const s5w = 698;
+        const s5h = 190;
+
+        const colors = palette.colors;
+        drawGridTile(s1x, s1y, s1w, s1h, colors[0] || '#ffffff', 'DOMINANT ACCENT 01');
+        drawGridTile(s2x, s2y, s2w, s2h, colors[1] || '#ffffff', 'SUPPORT SLOP 02');
+        drawGridTile(s3x, s3y, s3w, s3h, colors[2] || '#ffffff', 'ACCENT 03');
+        drawGridTile(s4x, s4y, s4w, s4h, colors[3] || '#ffffff', 'ACCENT 04');
+        drawGridTile(s5x, s5y, s5w, s5h, colors[4] || '#ffffff', 'DARK FOUNDATION BASE 05');
+
+      } else {
+        // --- STYLE 3: Minimalist Horizontal Bands with Floating Placard ---
+        const rowHeight = 630 / colorsCount;
+        palette.colors.forEach((hex, i) => {
+          ctx.fillStyle = hex;
+          ctx.fillRect(0, i * rowHeight, 1200, rowHeight);
+
+          const contrast = getContrastColor(hex);
+          ctx.fillStyle = contrast === '#ffffff' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.18)';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText(`0${i+1}`, 20, i * rowHeight + 25);
+        });
+
+        // Floating placard in middle
+        const placardW = 560;
+        const placardH = 260;
+        const placardX = (1200 - placardW) / 2;
+        const placardY = (630 - placardH) / 2;
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 12;
+
+        ctx.save();
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(placardX, placardY, placardW, placardH, 20);
+        } else {
+          ctx.rect(placardX, placardY, placardW, placardH);
+        }
+        ctx.fillStyle = '#0a0d16';
+        ctx.fill();
+        ctx.shadowColor = 'transparent'; // Reset
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = siteConfig?.primaryNeonAccent || '#00FFD1';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('COLOR ARCHITECTURE PORTAL', 1200 / 2, placardY + 50);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 30px sans-serif';
+        ctx.fillText(socialTitle.toUpperCase(), 1200 / 2, placardY + 95);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 12px sans-serif';
+        ctx.fillText(socialSubtitle, 1200 / 2, placardY + 135);
+
+        // Circular dots indicating colors inside the placard
+        const dotY = placardY + 180;
+        const spacing = 32;
+        const size = 10;
+        const startX = (1200 / 2) - ((colorsCount - 1) * spacing) / 2;
+
+        palette.colors.forEach((hex, i) => {
+          const dotX = startX + i * spacing;
+          ctx.fillStyle = hex;
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        if (socialShowBrand) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('FLATPALETTE.COM • CC0 SPECS', 1200 / 2, placardY + placardH - 25);
+        }
+
+        ctx.restore();
+      }
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${palette.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-social-card.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      setIsDownloadingSocialCard(false);
+    }, 850);
   };
 
   return (
@@ -468,6 +893,737 @@ export default function PaletteDetail({ palette, onClose, onLike, onBookmark, si
 
         </div>
 
+      </div>
+
+      {/* Contrast Ratio Analyzer Section */}
+      <div className="mt-12 p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl space-y-6" id="contrast-analyzer-section">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-mono text-[#00FFD1] uppercase tracking-widest font-bold" style={{ color: siteConfig?.primaryNeonAccent || '#00FFD1' }}>
+            <span>ACCESSIBILITY COMPLIANCE</span>
+            <span>•</span>
+            <span>WCAG 2.0 STANDARDS</span>
+          </div>
+          <h3 className="text-2xl font-black text-white tracking-tight mt-1">Contrast Ratio Analyzer</h3>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+            Verify readability scores of pairing foreground colors against backgrounds in this palette. Ensure conformity with Web Content Accessibility Guidelines (WCAG) AA and AAA specifications.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Block: Interactive Workshop (Col-span 7) */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-slate-950/40 border border-white/5 rounded-xl p-5 space-y-5">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">1. Color Pair Selector</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Background Selector */}
+                <div className="space-y-2">
+                  <label className="block text-xs text-slate-300 font-bold">Background Color :</label>
+                  <div className="flex flex-wrap gap-2">
+                    {palette.colors.map((color, i) => {
+                      const isBgSelected = analyzerBg === color;
+                      return (
+                        <button
+                          key={`bg-${color}-${i}`}
+                          onClick={() => setAnalyzerBg(color)}
+                          className={`group relative h-10 w-10 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                            isBgSelected 
+                              ? 'border-white scale-110 shadow-lg' 
+                              : 'border-white/10 hover:border-white/30'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={`Select Color Slot 0${i+1} (${color}) as Background`}
+                        >
+                          <span className={`text-[10px] font-mono font-black ${
+                            getContrastColor(color) === '#ffffff' ? 'text-white' : 'text-black'
+                          }`}>
+                            0{i+1}
+                          </span>
+                          {isBgSelected && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#00FFD1] rounded-full" style={{ backgroundColor: siteConfig?.primaryNeonAccent || '#00FFD1' }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400 font-semibold">{analyzerBg.toUpperCase()}</div>
+                </div>
+
+                {/* Foreground Selector */}
+                <div className="space-y-2">
+                  <label className="block text-xs text-slate-300 font-bold">Text / Foreground Color:</label>
+                  <div className="flex flex-wrap gap-2">
+                    {palette.colors.map((color, i) => {
+                      const isFgSelected = analyzerFg === color;
+                      return (
+                        <button
+                          key={`fg-${color}-${i}`}
+                          onClick={() => setAnalyzerFg(color)}
+                          className={`group relative h-10 w-10 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                            isFgSelected 
+                              ? 'border-white scale-110 shadow-lg' 
+                              : 'border-white/10 hover:border-white/30'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={`Select Color Slot 0${i+1} (${color}) as Text`}
+                        >
+                          <span className={`text-[10px] font-mono font-black ${
+                            getContrastColor(color) === '#ffffff' ? 'text-white' : 'text-black'
+                          }`}>
+                            0{i+1}
+                          </span>
+                          {isFgSelected && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#00FFD1] rounded-full" style={{ backgroundColor: siteConfig?.primaryNeonAccent || '#00FFD1' }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400 font-semibold">{analyzerFg.toUpperCase()}</div>
+                </div>
+              </div>
+
+              {/* Live Preview interactive playground container */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">2. Live Demonstration Sandbox</span>
+                  
+                  {/* Size toggles */}
+                  <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/10 text-[9.5px] font-bold">
+                    <button 
+                      onClick={() => setPreviewSize('normal')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${previewSize === 'normal' ? 'bg-white/10 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      Normal (14px)
+                    </button>
+                    <button 
+                      onClick={() => setPreviewSize('large')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${previewSize === 'large' ? 'bg-white/10 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+                    >
+                      Large (20px Bold)
+                    </button>
+                  </div>
+                </div>
+
+                <div 
+                  className="rounded-xl p-6 min-h-[140px] flex flex-col justify-between transition-all duration-300 border border-white/5 relative overflow-hidden"
+                  style={{ backgroundColor: analyzerBg }}
+                >
+                  <input 
+                    type="text"
+                    value={analyzerText}
+                    onChange={(e) => setAnalyzerText(e.target.value)}
+                    className="bg-transparent border-none outline-none focus:ring-0 p-0 w-full text-left font-sans transition-all tracking-tight leading-relaxed select-all"
+                    style={{ 
+                      color: analyzerFg,
+                      fontSize: previewSize === 'large' ? '20px' : '14px',
+                      fontWeight: previewSize === 'large' ? 800 : 500
+                    }}
+                    title="Click to edit preview message"
+                    placeholder="Type customized mock text..."
+                  />
+
+                  {/* Diary notes verifying typography guidelines */}
+                  <div className="space-y-1 pt-4 opacity-80 border-t border-white/10 mt-4 pointer-events-none">
+                    <p style={{ color: analyzerFg }} className="text-[10px] font-mono">
+                      Background: {analyzerBg.toUpperCase()} | Foreground: {analyzerFg.toUpperCase()}
+                    </p>
+                    <p style={{ color: analyzerFg }} className="text-[10px] leading-tight font-medium max-w-sm">
+                      Evaluate active color spectrums against paragraphs, input elements, buttons, and system displays.
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[9px] text-slate-550 italic">★ ProTip: Click and edit the message text directly to simulate custom values!</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Block: Results Metrics & 2D Matrix (Col-span 5) */}
+          <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
+            
+            {/* Real-time score ticker */}
+            <div className="bg-slate-950/40 border border-white/5 rounded-xl p-5 space-y-4">
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">3. Contrast Metrics Score</span>
+                  <div className="text-4xl font-black text-white mt-1.5 font-mono tracking-tight">
+                    {getContrastRatio(analyzerBg, analyzerFg).toFixed(2)}
+                    <span className="text-sm text-slate-400 font-medium ml-1">: 1</span>
+                  </div>
+                </div>
+                
+                {/* Visual meter bubble */}
+                <div className="h-10 px-3 rounded-lg flex items-center justify-center font-bold text-xs" style={{
+                  backgroundColor: getContrastRatio(analyzerBg, analyzerFg) >= 7.0 
+                    ? 'rgba(16, 185, 129, 0.15)' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 4.5 
+                    ? 'rgba(20, 184, 166, 0.15)' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 3.0 
+                    ? 'rgba(234, 179, 8, 0.15)' 
+                    : 'rgba(239, 68, 68, 0.15)',
+                  color: getContrastRatio(analyzerBg, analyzerFg) >= 7.0 
+                    ? '#10b981' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 4.5 
+                    ? '#14b8a6' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 3.0 
+                    ? '#eab308' 
+                    : '#ef4444',
+                  border: `1px solid ${
+                    getContrastRatio(analyzerBg, analyzerFg) >= 7.0 
+                      ? 'rgba(16, 185, 129, 0.3)' 
+                      : getContrastRatio(analyzerBg, analyzerFg) >= 4.5 
+                      ? 'rgba(20, 184, 166, 0.3)' 
+                      : getContrastRatio(analyzerBg, analyzerFg) >= 3.0 
+                      ? 'rgba(234, 179, 8, 0.3)' 
+                      : 'rgba(239, 68, 68, 0.3)'
+                  }`
+                }}>
+                  {getContrastRatio(analyzerBg, analyzerFg) >= 7.0 
+                    ? 'Triple-A Superb' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 4.5 
+                    ? 'Double-A Compliant' 
+                    : getContrastRatio(analyzerBg, analyzerFg) >= 3.0 
+                    ? 'Large Text Only' 
+                    : 'Poor Contrast'}
+                </div>
+              </div>
+
+              {/* Animated/visual simple speed gauge bar */}
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+                <div 
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min((getContrastRatio(analyzerBg, analyzerFg) / 21) * 100, 100)}%`,
+                    backgroundColor: getContrastRatio(analyzerBg, analyzerFg) >= 7 
+                      ? '#10b981' 
+                      : getContrastRatio(analyzerBg, analyzerFg) >= 4.5 
+                      ? '#14b8a6' 
+                      : getContrastRatio(analyzerBg, analyzerFg) >= 3 
+                      ? '#eab308' 
+                      : '#ef4444'
+                  }}
+                />
+              </div>
+
+              {/* Multi-Tier checklist */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                {[
+                  { label: 'AA Normal Text', rule: 'Req Ratio ≥ 4.5:1', pass: getContrastRatio(analyzerBg, analyzerFg) >= 4.5 },
+                  { label: 'AA Large Text', rule: 'Req Ratio ≥ 3.0:1', pass: getContrastRatio(analyzerBg, analyzerFg) >= 3.0 },
+                  { label: 'AAA Normal Text', rule: 'Req Ratio ≥ 7.0:1', pass: getContrastRatio(analyzerBg, analyzerFg) >= 7.0 },
+                  { label: 'AAA Large Text', rule: 'Req Ratio ≥ 4.5:1', pass: getContrastRatio(analyzerBg, analyzerFg) >= 4.5 },
+                ].map((tier, idx) => (
+                  <div 
+                    key={idx}
+                    className={`p-2.5 rounded-lg border flex flex-col justify-between transition-colors ${
+                      tier.pass 
+                        ? 'bg-emerald-950/20 border-emerald-500/10 text-emerald-400' 
+                        : 'bg-red-950/20 border-red-500/10 text-red-400'
+                    }`}
+                  >
+                    <span className="text-[10px] font-mono tracking-wide font-black uppercase">{tier.label}</span>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[9px] opacity-70 font-semibold">{tier.rule}</span>
+                      <span className="text-[10px] font-black tracking-widest uppercase">
+                        {tier.pass ? '✓ PASS' : '✗ FAIL'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Matrix Analyzer */}
+            <div className="bg-slate-950/40 border border-white/5 rounded-xl p-5 space-y-4">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">4. All Pairings Matrix (Bg vs Fg)</span>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Click any coordinate inside the 5×5 matrix to instantly sync it to the workspace testing sandbox above.
+              </p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-center border-collapse text-[10px] font-mono">
+                  <thead>
+                    <tr>
+                      <th className="p-1 text-[8.5px] text-slate-500 font-bold bg-white/2">BG \ FG</th>
+                      {palette.colors.map((_, colIdx) => (
+                        <th key={`head-fg-${colIdx}`} className="p-1 font-black bg-white/2 text-slate-300">
+                          0{colIdx + 1}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {palette.colors.map((bgHex, rowIdx) => (
+                      <tr key={`matrix-row-${rowIdx}`} className="border-t border-white/5">
+                        {/* Background label */}
+                        <td className="p-1 font-black bg-white/2 text-slate-300 text-left items-center gap-1.5">
+                          0{rowIdx + 1}
+                        </td>
+                        {palette.colors.map((fgHex, colIdx) => {
+                          const ratio = getContrastRatio(bgHex, fgHex);
+                          const isCurrentMatch = analyzerBg === bgHex && analyzerFg === fgHex;
+                          
+                          // Style code: bg index same as fg index is invalid contrast (1:1)
+                          const isDiagonal = rowIdx === colIdx;
+                          let textStyle = "text-slate-450";
+                          if (ratio >= 7) textStyle = "text-emerald-400 font-bold";
+                          else if (ratio >= 4.5) textStyle = "text-teal-400 font-bold";
+                          else if (ratio >= 3) textStyle = "text-yellow-400";
+                          else textStyle = "text-red-400/60";
+
+                          return (
+                            <td 
+                              key={`matrix-cell-${rowIdx}-${colIdx}`}
+                              onClick={() => {
+                                if (!isDiagonal) {
+                                  setAnalyzerBg(bgHex);
+                                  setAnalyzerFg(fgHex);
+                                }
+                              }}
+                              className={`p-1.5 transition-all cursor-pointer relative group select-none ${
+                                isDiagonal ? 'cursor-not-allowed opacity-30 bg-black/20' : 'hover:bg-white/10'
+                              } ${isCurrentMatch ? 'bg-[#00FFD1]/10 outline outline-1 outline-[#00FFD1]/30 rounded' : ''}`}
+                              title={
+                                isDiagonal 
+                                  ? 'Identical colors (No Contrast)' 
+                                  : `Combine bg: 0${rowIdx+1} with fg: 0${colIdx+1}. Contrast Ratio is ${ratio.toFixed(2)}:1`
+                              }
+                            >
+                              {isDiagonal ? (
+                                <span className="text-[10px] text-slate-650">—</span>
+                              ) : (
+                                <span className={textStyle}>{ratio.toFixed(1)}</span>
+                              )}
+                              
+                              {/* On-hover overlay showing brief label */}
+                              {!isDiagonal && (
+                                <div className="absolute hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-[9px] text-white p-1 rounded whitespace-nowrap shadow-xl mb-1 z-10 font-sans pointer-events-none">
+                                  0{rowIdx+1} bg \ 0{colIdx+1} fg ({ratio.toFixed(2)}:1)
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Social Share Card Generator Section */}
+      <div className="mt-12 p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl space-y-6" id="social-share-card-generator-section">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-mono text-[#00FFD1] uppercase tracking-widest font-bold" style={{ color: siteConfig?.primaryNeonAccent || '#00FFD1' }}>
+            <span>DESIGN EXPORT PACK</span>
+            <span>•</span>
+            <span>SOCIAL SHARE MEDIA CARD</span>
+          </div>
+          <h3 className="text-2xl font-black text-white tracking-tight mt-1">Social Share Card Generator</h3>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+            Generate and customize a beautiful, high-resolution (1200×630 px) presentation card of this palette. Perfect for sharing on Twitter, LinkedIn, Instagram, or portfolios.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left: Card Customizer Controls (Col-span 5) */}
+          <div className="lg:col-span-5 bg-slate-950/40 border border-white/5 rounded-xl p-5 space-y-5 flex flex-col justify-between">
+            <div className="space-y-4">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">1. Configure Card Content</span>
+
+              {/* Layout Selectors */}
+              <div className="space-y-1.5">
+                <label className="block text-xs text-slate-300 font-bold">Select Presentation Layout:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'columns', label: 'Spectrum Columns' },
+                    { id: 'bento', label: 'Bento Grid' },
+                    { id: 'minimal', label: 'Minimal Card' },
+                  ].map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => setSocialStyle(style.id as any)}
+                      className={`py-2 text-[10.5px] font-black uppercase tracking-wider rounded-lg border transition-all cursor-pointer ${
+                        socialStyle === style.id
+                          ? 'border-[#00FFD1] bg-[#00FFD1]/10 text-[#00FFD1]'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:border-white/20'
+                      }`}
+                      style={{ 
+                        borderColor: socialStyle === style.id ? siteConfig?.primaryNeonAccent : undefined,
+                        color: socialStyle === style.id ? siteConfig?.primaryNeonAccent : undefined
+                      }}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Card Title Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs text-slate-300 font-bold">Custom Palette Title :</label>
+                <input
+                  type="text"
+                  value={socialTitle}
+                  onChange={(e) => setSocialTitle(e.target.value)}
+                  maxLength={40}
+                  className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white placeholder-slate-550 focus:border-[#00FFD1]/55 outline-none font-bold"
+                  placeholder="Enter custom card heading..."
+                />
+              </div>
+
+              {/* Custom Card Subtitle Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs text-slate-300 font-bold">Slogan / Custom Subtitle :</label>
+                <input
+                  type="text"
+                  value={socialSubtitle}
+                  onChange={(e) => setSocialSubtitle(e.target.value)}
+                  maxLength={80}
+                  className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white placeholder-slate-550 focus:border-[#00FFD1]/55 outline-none"
+                  placeholder="Enter custom card description..."
+                />
+              </div>
+
+              {/* Toggles */}
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                {/* Tag Toggle */}
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-white/5 bg-slate-900/40">
+                  <span className="text-[10px] text-slate-350 font-bold uppercase tracking-wider">Include Tags</span>
+                  <button
+                    onClick={() => setSocialShowTags(!socialShowTags)}
+                    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                      socialShowTags ? 'bg-[#00FFD1]' : 'bg-slate-800'
+                    }`}
+                    style={{ backgroundColor: socialShowTags ? (siteConfig?.primaryNeonAccent || '#00FFD1') : undefined }}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-slate-950 transition-all ${
+                      socialShowTags ? 'left-[18px]' : 'left-[2px]'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* Brand Toggle */}
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-white/5 bg-slate-900/40">
+                  <span className="text-[10px] text-slate-350 font-bold uppercase tracking-wider">Use Brand Mark</span>
+                  <button
+                    onClick={() => setSocialShowBrand(!socialShowBrand)}
+                    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                      socialShowBrand ? 'bg-[#00FFD1]' : 'bg-slate-800'
+                    }`}
+                    style={{ backgroundColor: socialShowBrand ? (siteConfig?.primaryNeonAccent || '#00FFD1') : undefined }}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-slate-950 transition-all ${
+                      socialShowBrand ? 'left-[18px]' : 'left-[2px]'
+                    }`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Direct compilation action btn */}
+            <div className="pt-4 border-t border-white/5">
+              <button
+                onClick={handleDownloadSocialCard}
+                disabled={isDownloadingSocialCard}
+                className="w-full py-3 bg-[#00FFD1] hover:bg-[#00ffc2]/90 disabled:opacity-50 text-slate-950 font-black tracking-widest text-xs uppercase rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                style={{ backgroundColor: siteConfig?.primaryNeonAccent || '#00FFD1' }}
+              >
+                {isDownloadingSocialCard ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Assembling Card Graphics...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Download Social PNG</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Right: Premium Real-time Live Render Preview (Col-span 7) */}
+          <div className="lg:col-span-7 space-y-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">2. Live Presentation Card Mock (1.91 : 1 Aspect)</span>
+            
+            <div className="relative border border-white/10 rounded-xl overflow-hidden aspect-[1.91/1] w-full bg-slate-950 shadow-2xl flex">
+              {/* Spinner loader layout overlay if working under download */}
+              {isDownloadingSocialCard && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-2 text-center animate-fade-in">
+                  <div className="h-8 w-8 rounded-full border-2 border-slate-700 border-t-[#00FFD1] animate-spin" style={{ borderTopColor: siteConfig?.primaryNeonAccent || '#00FFD1' }} />
+                  <p className="text-xs font-mono text-slate-300 font-bold">Rendering pixel-perfect vector context...</p>
+                </div>
+              )}
+
+              {/* Template Style 1: Column Stripes */}
+              {socialStyle === 'columns' && (
+                <div className="w-full h-full flex bg-[#0a0f1d]">
+                  {/* Info block (40%) */}
+                  <div className="w-[40%] p-3.5 sm:p-5 flex flex-col justify-between border-r border-white/5 relative overflow-hidden">
+                    {/* Glowing highlight sphere */}
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,209,0.06),transparent_70%)] pointer-events-none" />
+                    
+                    <div className="space-y-1 z-10">
+                      <span className="text-[7.5px] font-mono font-bold uppercase tracking-widest text-[#00FFD1]" style={{ color: siteConfig?.primaryNeonAccent }}>
+                        Curated Spec • flatpalette
+                      </span>
+                      <h4 className="text-[15px] sm:text-[18px] font-black tracking-tight text-white line-clamp-3 uppercase leading-tight font-sans">
+                        {socialTitle || 'UNTITLED SPECTRUM'}
+                      </h4>
+                      <p className="text-slate-400 text-[8px] sm:text-[10px] tracking-normal leading-relaxed line-clamp-3 font-medium">
+                        {socialSubtitle || 'Creative color configuration.'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2.5 z-10">
+                      {socialShowTags && (
+                        <div className="text-[8px] font-mono text-slate-500 font-bold truncate">
+                          {palette.tags.map(t => `#${t}`).join(' ')}
+                        </div>
+                      )}
+                      
+                      {socialShowBrand && (
+                        <div className="border border-white/10 bg-white/2 p-1.5 rounded text-[8px] font-mono text-white/50 text-center tracking-wider font-extrabold">
+                          FLATPALETTE.COM
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Colors block (60%) */}
+                  <div className="w-[60%] flex h-full">
+                    {palette.colors.map((hex, i) => {
+                      const contrast = getContrastColor(hex);
+                      return (
+                        <div 
+                          key={i} 
+                          className="flex-1 h-full flex flex-col justify-between p-2.5 relative group transition-all"
+                          style={{ backgroundColor: hex }}
+                        >
+                          <span 
+                            className="text-[9px] font-mono font-extrabold"
+                            style={{ color: contrast === '#ffffff' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)' }}
+                          >
+                            0{i+1}
+                          </span>
+                          <span 
+                            className="text-[9px] sm:text-[10.5px] font-mono font-black tracking-wide"
+                            style={{ color: contrast }}
+                          >
+                            {hex.toUpperCase()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Template Style 2: Bento Grid */}
+              {socialStyle === 'bento' && (
+                <div className="w-full h-full flex bg-[#070a13]">
+                  {/* Left segment (35%) */}
+                  <div className="w-[35%] p-4 sm:p-5 flex flex-col justify-between border-r border-white/5 z-10 relative">
+                    <div className="space-y-1">
+                      <span className="text-[7.5px] font-mono font-bold uppercase tracking-widest text-slate-500">
+                        BENTO SPEC FRAMEWORK
+                      </span>
+                      <h4 className="text-[14px] sm:text-[17px] font-black tracking-tight text-white line-clamp-3 uppercase leading-tight">
+                        {socialTitle || 'UNTITLED SPEC'}
+                      </h4>
+                      <p className="text-slate-450 text-[8px] sm:text-[9.5px] leading-relaxed line-clamp-3">
+                        {socialSubtitle}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      {socialShowTags && (
+                        <div className="text-[8px] font-mono text-[#00FFD1] uppercase tracking-wider font-extrabold" style={{ color: siteConfig?.primaryNeonAccent }}>
+                          {palette.tags.slice(0, 3).map(t => `#${t}`).join(' ')}
+                        </div>
+                      )}
+                      
+                      {socialShowBrand && (
+                        <div className="text-[8px] text-slate-500 font-mono">
+                          CC0 • FLATPALETTE.COM
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right segment: Bento Cells (65%) */}
+                  <div className="w-[65%] grid grid-cols-12 gap-1.5 p-2 bg-black/15">
+                    {/* Swatch 1: Large square */}
+                    <div 
+                      className="col-span-6 row-span-2 rounded-lg flex flex-col justify-between p-2 sm:p-2.5 border border-white/5 shadow"
+                      style={{ backgroundColor: palette.colors[0] }}
+                    >
+                      <span className="text-[8px] sm:text-[9px] font-mono font-extrabold" style={{ color: getContrastColor(palette.colors[0]) === '#ffffff' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)' }}>
+                        DOMINANT
+                      </span>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-black" style={{ color: getContrastColor(palette.colors[0]) }}>
+                        {palette.colors[0]?.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Swatch 2: Wide Horizontal */}
+                    <div 
+                      className="col-span-6 rounded-lg flex flex-col justify-between p-1.5 sm:p-2 border border-white/5 shadow"
+                      style={{ backgroundColor: palette.colors[1] || palette.colors[0] }}
+                    >
+                      <span className="text-[8px] font-mono font-bold" style={{ color: getContrastColor(palette.colors[1] || palette.colors[0]) === '#ffffff' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)' }}>
+                        SUPPORT
+                      </span>
+                      <span className="text-[8.5px] sm:text-[9px] font-mono font-black" style={{ color: getContrastColor(palette.colors[1] || palette.colors[0]) }}>
+                        {palette.colors[1]?.toUpperCase() || palette.colors[0]?.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Swatch 3: Accent A */}
+                    <div 
+                      className="col-span-3 rounded-lg flex flex-col justify-between p-1.5 border border-white/5"
+                      style={{ backgroundColor: palette.colors[2] || palette.colors[0] }}
+                    >
+                      <span className="text-[8px] font-mono font-black" style={{ color: getContrastColor(palette.colors[2] || palette.colors[0]) }}>
+                        {palette.colors[2]?.toUpperCase().slice(0, 4) || palette.colors[0]?.toUpperCase().slice(0,4)}...
+                      </span>
+                    </div>
+
+                    {/* Swatch 4: Accent B */}
+                    <div 
+                      className="col-span-3 rounded-lg flex flex-col justify-between p-1.5 border border-white/5"
+                      style={{ backgroundColor: palette.colors[3] || palette.colors[0] }}
+                    >
+                      <span className="text-[8px] font-mono font-black" style={{ color: getContrastColor(palette.colors[3] || palette.colors[0]) }}>
+                        {palette.colors[3]?.toUpperCase().slice(0, 4) || palette.colors[0]?.toUpperCase().slice(0,4)}...
+                      </span>
+                    </div>
+
+                    {/* Swatch 5: Full Width Foot block */}
+                    <div 
+                      className="col-span-12 rounded-lg flex flex-col justify-between p-1.5 sm:p-2 border border-white/5"
+                      style={{ backgroundColor: palette.colors[4] || palette.colors[0] }}
+                    >
+                      <span className="text-[8.5px] font-mono font-black" style={{ color: getContrastColor(palette.colors[4] || palette.colors[0]) }}>
+                        BASE: {palette.colors[4]?.toUpperCase() || palette.colors[0]?.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Template Style 3: Minimal Center Card */}
+              {socialStyle === 'minimal' && (
+                <div className="w-full h-full relative flex flex-col overflow-hidden">
+                  {/* Backdrop strips */}
+                  <div className="absolute inset-0 flex flex-col h-full w-full pointer-events-none">
+                    {palette.colors.map((hex, i) => (
+                      <div key={i} className="flex-1 w-full" style={{ backgroundColor: hex }} />
+                    ))}
+                  </div>
+
+                  {/* Center Floating Placard */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[65%] bg-[#0a0d16] border border-white/10 rounded-xl px-4 py-3 shadow-2xl flex flex-col items-center text-center space-y-1 sm:space-y-1.5 z-10">
+                    <span className="text-[7px] font-mono text-[#00FFD1] font-bold tracking-widest uppercase" style={{ color: siteConfig?.primaryNeonAccent }}>
+                      COLOR ARCHITECTURE
+                    </span>
+                    <h4 className="text-[12px] sm:text-[14px] font-black uppercase text-white tracking-normal line-clamp-1">
+                      {socialTitle || 'UNTITLED SPECTRUM'}
+                    </h4>
+                    <p className="text-slate-450 text-[7px] sm:text-[8px] line-clamp-1 leading-normal max-w-[220px]">
+                      {socialSubtitle}
+                    </p>
+
+                    {/* Dots indicator list */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      {palette.colors.map((hex, i) => (
+                        <div 
+                          key={i} 
+                          className="w-2 h-2 rounded-full border border-white/10" 
+                          style={{ backgroundColor: hex }} 
+                        />
+                      ))}
+                    </div>
+
+                    {socialShowBrand && (
+                      <span className="text-[6.5px] font-mono text-slate-500 font-extrabold uppercase mt-1 tracking-wider">
+                        FLATPALETTE.COM • COOPERATIVE
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="text-[9px] font-mono text-slate-500 text-center italic">
+              ★ Tip: The downloaded PNG is rendered in crisp vector resolution (1200×630 pixels) regardless of preview window scaling factor.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Related Palettes / Related Posts section */}
+      <div className="mt-16 pt-10 border-t border-white/5" id="related-palettes-section">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono text-[#00FFD1] uppercase tracking-widest font-bold" style={{ color: siteConfig?.primaryNeonAccent || '#00FFD1' }}>
+              <span>RECOMMENDED SPECTRUIMS</span>
+              <span>•</span>
+              <span>DISCOVERY CONNECT</span>
+            </div>
+            <h3 className="text-2xl font-black text-white tracking-tight mt-1">Related Palettes</h3>
+            <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+              Based on shared visual categories and mood tags. Explore matching color architecture frameworks.
+            </p>
+          </div>
+          <div className="text-xs font-mono text-slate-500 font-bold bg-white/5 border border-white/5 px-3 py-1.5 rounded-lg">
+            SHOWING {Math.min(displayedRelated.length, visibleRelatedLimit)} OF {relatedPalettes.length} RELATED
+          </div>
+        </div>
+
+        {relatedPalettes.length === 0 ? (
+          <div className="text-center py-12 rounded-2xl border border-dashed border-white/5 bg-white/2">
+            <p className="text-sm text-slate-500 italic">No other related color configurations found matching current criteria.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Grid structure: 4 items per row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {displayedRelated.map((p, idx) => (
+                <PaletteCard
+                  key={p.id}
+                  palette={p}
+                  onSelect={onSelectPalette}
+                  onLike={onLike}
+                  onBookmark={onBookmark}
+                  index={idx}
+                />
+              ))}
+            </div>
+
+            {/* Load more button */}
+            {relatedPalettes.length > visibleRelatedLimit && (
+              <div className="flex justify-center pt-4">
+                <button
+                  id="load-more-related-btn"
+                  onClick={() => setVisibleRelatedLimit(prev => prev + 12)}
+                  className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 hover:border-[#00FFD1]/30 hover:text-[#00FFD1] text-xs font-bold uppercase tracking-wider transition-all hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                  style={{ color: siteConfig?.primaryNeonAccent || '#00FFD1', borderColor: `${siteConfig?.primaryNeonAccent || '#00FFD1'}33` }}
+                >
+                  <span>Load More Related</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dynamic Share Palette Modal Override */}

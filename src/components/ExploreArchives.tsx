@@ -52,6 +52,29 @@ export default function ExploreArchives({
     { name: 'brown', label: 'Brown / Warm', color: 'bg-amber-950' },
   ];
 
+  const [categoryTags, setCategoryTags] = useState<string[]>(() => {
+    const saved = localStorage.getItem('flatpalette_popular_tags_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (err) {
+        // Fallback
+      }
+    }
+    return ['Cyberpunk', 'Neon', 'Vibrant', 'Dark', 'Retro', 'Pastel', 'Minimal', 'Nature', 'Vintage', 'Muted', 'Warm', 'Modern', 'Luxury'];
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('flatpalette_popular_tags_v1');
+    if (saved) {
+      try {
+        setCategoryTags(JSON.parse(saved));
+      } catch (err) {
+        // Fallback
+      }
+    }
+  }, []);
+
   const allTags = useMemo(() => {
     const set = new Set<string>();
     palettes.forEach(p => p.tags.forEach(t => set.add(t)));
@@ -188,6 +211,32 @@ export default function ExploreArchives({
             </div>
           </div>
 
+          {/* Preset Tag Explorer */}
+          <div className="space-y-3 lg:block hidden">
+            <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5 font-bold">
+              <Tag className="h-3.5 w-3.5 text-[#00FFD1]" />
+              <span>Category Tags</span>
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {categoryTags.map((tag) => {
+                const isSelected = searchQuery.toLowerCase() === tag.toLowerCase();
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setSearchQuery(isSelected ? '' : tag)}
+                    className={`text-[10px] px-3 py-1 rounded-full transition-all font-bold ${
+                      isSelected 
+                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black hover:scale-105' 
+                        : 'bg-white/5 text-slate-300 hover:bg-white/15 hover:text-white border border-white/5'
+                    }`}
+                  >
+                    #{tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Dominant Hue Filter Group */}
           <div className="space-y-3">
             <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">
@@ -209,32 +258,6 @@ export default function ExploreArchives({
                   >
                     <span className={`h-3 w-3 rounded-full ${hue.color}`} />
                     <span>{hue.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Preset Tag Explorer */}
-          <div className="space-y-3 lg:block hidden">
-            <h4 className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5 font-bold">
-              <Tag className="h-3.5 w-3.5 text-[#00FFD1]" />
-              <span>Keyword Tags</span>
-            </h4>
-            <div className="flex flex-wrap gap-1.5">
-              {allTags.map((tag) => {
-                const isSelected = searchQuery.toLowerCase() === tag.toLowerCase();
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => setSearchQuery(isSelected ? '' : tag)}
-                    className={`text-[10px] px-3 py-1 rounded-full transition-all font-bold ${
-                      isSelected 
-                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black hover:scale-105' 
-                        : 'bg-white/5 text-slate-300 hover:bg-white/15 hover:text-white border border-white/5'
-                    }`}
-                  >
-                    #{tag}
                   </button>
                 );
               })}

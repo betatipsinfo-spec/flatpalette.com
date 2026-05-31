@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Settings2, Layers, Sliders, Database, MailCheck, ShieldCheck, 
   Trash2, Check, Edit2, Save, Sparkles, SlidersHorizontal, Eye, Globe,
@@ -277,20 +278,30 @@ export default function AdminDashboard({
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 className="w-full text-xs bg-slate-950 rounded border border-white/15 px-2 py-1 text-white text-left font-semibold outline-hidden"
                               />
-                              <div className="flex flex-wrap gap-1 my-1">
-                                {editTags.split(',').map(t => t.trim()).filter(Boolean).map(t => (
-                                  <span key={t} className="bg-purple-900/40 border border-purple-500/20 text-purple-300 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    <span>#{t}</span>
-                                    <button
-                                      type="button"
-                                      className="text-purple-400 hover:text-red-400 font-extrabold ml-0.5 text-xs"
-                                      onClick={() => handleDeleteTagInEdit(t)}
-                                      title={`Delete category tag ${t}`}
+                              <div className="flex flex-wrap gap-1 my-1 overflow-hidden">
+                                <AnimatePresence mode="popLayout">
+                                  {editTags.split(',').map(t => t.trim()).filter(Boolean).map(t => (
+                                    <motion.span 
+                                      key={t}
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                                      layout
+                                      className="bg-purple-900/40 border border-purple-500/20 text-purple-300 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1"
                                     >
-                                      &times;
-                                    </button>
-                                  </span>
-                                ))}
+                                      <span>#{t}</span>
+                                      <button
+                                        type="button"
+                                        className="text-purple-400 hover:text-red-400 font-extrabold ml-0.5 text-xs cursor-pointer"
+                                        onClick={() => handleDeleteTagInEdit(t)}
+                                        title={`Delete category tag ${t}`}
+                                      >
+                                        &times;
+                                      </button>
+                                    </motion.span>
+                                  ))}
+                                </AnimatePresence>
                               </div>
                               <input
                                 type="text"
@@ -304,20 +315,30 @@ export default function AdminDashboard({
                             <div>
                               <span className="font-bold text-white text-sm block">{p.title}</span>
                               <span className="text-[10px] text-slate-400 font-mono">ID: {p.id} • {p.likes} likes</span>
-                              <div className="flex flex-wrap gap-1 mt-1.5">
-                                {p.tags.map(t => (
-                                  <span key={t} className="bg-slate-800 hover:bg-slate-700/80 text-[9.5px] px-2 py-0.5 rounded-md text-slate-300 flex items-center gap-1 group/tag transition-all">
-                                    <span>#{t}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeletePaletteTag(p.id, t)}
-                                      className="text-slate-400 hover:text-red-400 font-extrabold ml-0.5 text-xs transition-colors cursor-pointer"
-                                      title={`Delete category tag #${t}`}
+                              <div className="flex flex-wrap gap-1 mt-1.5 overflow-hidden">
+                                <AnimatePresence mode="popLayout">
+                                  {p.tags.map(t => (
+                                    <motion.span 
+                                      key={t}
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                                      layout
+                                      className="bg-slate-800 hover:bg-slate-700/80 text-[9.5px] px-2 py-0.5 rounded-md text-slate-300 flex items-center gap-1 group/tag transition-all"
                                     >
-                                      &times;
-                                    </button>
-                                  </span>
-                                ))}
+                                      <span>#{t}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeletePaletteTag(p.id, t)}
+                                        className="text-slate-400 hover:text-red-400 font-extrabold ml-0.5 text-xs transition-colors cursor-pointer"
+                                        title={`Delete category tag #${t}`}
+                                      >
+                                        &times;
+                                      </button>
+                                    </motion.span>
+                                  ))}
+                                </AnimatePresence>
                               </div>
                             </div>
                           )}

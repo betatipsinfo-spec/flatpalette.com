@@ -243,3 +243,35 @@ export function generateRandomHex(): string {
   }
   return color;
 }
+
+/**
+ * Calculates WCAG 2.0 relative luminance for a given hex color.
+ */
+export function getRelativeLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+  
+  const r = rgb.r / 255;
+  const g = rgb.g / 255;
+  const b = rgb.b / 255;
+  
+  const rL = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+  const gL = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+  const bL = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+  
+  return 0.2126 * rL + 0.7152 * gL + 0.0722 * bL;
+}
+
+/**
+ * Calculates contrast ratio between two hex colors.
+ * Returns a value between 1.0 and 21.0.
+ */
+export function getContrastRatio(hex1: string, hex2: string): number {
+  const l1 = getRelativeLuminance(hex1);
+  const l2 = getRelativeLuminance(hex2);
+  
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  
+  return (lighter + 0.05) / (darker + 0.05);
+}
