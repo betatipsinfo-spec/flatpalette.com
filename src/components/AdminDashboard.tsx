@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Settings2, Layers, Sliders, Database, MailCheck, ShieldCheck, 
   Trash2, Check, Edit2, Save, Sparkles, SlidersHorizontal, Eye, Globe,
-  X
+  X, Search, Filter
 } from 'lucide-react';
 import { Palette, SiteConfig, Lead } from '../types';
 import { COLOR_NOMECLATURE_MAP } from '../data';
@@ -35,6 +35,32 @@ export default function AdminDashboard({
   onDeleteLead,
 }: AdminDashboardProps) {
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<'manager' | 'customizer' | 'leads' | 'indexer' | 'seo'>('manager');
+  
+  // States for search and filter in Live Palette Moderation
+  const [managerSearch, setManagerSearch] = useState('');
+  const [managerFilter, setManagerFilter] = useState<'all' | 'approved' | 'pending' | 'staff'>('all');
+
+  // Computed/filtered palettes for moderation
+  const filteredManagerPalettes = React.useMemo(() => {
+    return palettes.filter((p) => {
+      // 1. Status Filter
+      if (managerFilter === 'approved' && !p.approved) return false;
+      if (managerFilter === 'pending' && p.approved) return false;
+      if (managerFilter === 'staff' && !p.isStaffPick) return false;
+
+      // 2. Search query matching
+      if (managerSearch.trim() !== '') {
+        const query = managerSearch.toLowerCase().trim();
+        const matchesTitle = p.title.toLowerCase().includes(query);
+        const matchesTags = p.tags.some(tag => tag.toLowerCase().includes(query));
+        const matchesId = p.id.toLowerCase().includes(query);
+        const matchesHex = p.colors.some(col => col.toLowerCase().includes(query));
+        return matchesTitle || matchesTags || matchesId || matchesHex;
+      }
+
+      return true;
+    });
+  }, [palettes, managerFilter, managerSearch]);
   
   // Custom dialog confirmation modal state
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
@@ -247,9 +273,86 @@ export default function AdminDashboard({
         {/* Workspace 1: Palette Manager CRUD ledger */}
         {activeAdminSubTab === 'manager' && (
           <div className="space-y-6" id="admin-palette-manager">
-            <div className="border-b border-white/5 pb-3">
-              <h3 className="text-lg font-bold text-slate-100">Live Palette Moderation</h3>
-              <p className="text-xs text-slate-400">Moderate custom submission flows, tag coordinates, and highlights.</p>
+            <div className="border-b border-white/5 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Live Palette Moderation</h3>
+                <p className="text-xs text-slate-400">Moderate custom submission flows, tag coordinates, and highlights.</p>
+              </div>
+            </div>
+
+            {/* Search and Filter Control Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 rounded-xl bg-slate-950/40 border border-white/5 items-center">
+              {/* Search text input */}
+              <div className="relative md:col-span-5">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={managerSearch}
+                  onChange={(e) => setManagerSearch(e.target.value)}
+                  placeholder="Filter by title, tag, ID, color hex..."
+                  className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:border-purple-500 outline-hidden transition-colors"
+                />
+                {managerSearch && (
+                  <button
+                    onClick={() => setManagerSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter tabs list */}
+              <div className="md:col-span-7 flex flex-wrap items-center justify-start md:justify-end gap-1.5 text-xs">
+                <span className="text-[10px] font-mono text-slate-500 font-bold uppercase mr-1 flex items-center gap-1">
+                  <Filter className="h-3 w-3" />
+                  <span>Status:</span>
+                </span>
+                {[
+                  { id: 'all', label: 'All', count: palettes.length },
+                  { id: 'pending', label: 'Pending', count: palettes.filter(p => !p.approved).length },
+                  { id: 'approved', label: 'Approved', count: palettes.filter(p => p.approved).length },
+                  { id: 'staff', label: 'Staff Pick', count: palettes.filter(p => p.isStaffPick).length },
+                ].map((item) => {
+                  const isSelected = managerFilter === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setManagerFilter(item.id as any)}
+                      className={`px-3 py-1.5 rounded-lg border text-[10.5px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-purple-900/60 border-purple-500/40 text-purple-350 font-black'
+                          : 'bg-white/2 border-white/5 text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className={`text-[9px] font-mono px-1 rounded-xs ${
+                        isSelected ? 'bg-purple-500/20 text-purple-200' : 'bg-white/5 text-slate-500'
+                      }`}>
+                        {item.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Match statistic and clear action */}
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 font-bold">
+              <div>
+                SHOWING {filteredManagerPalettes.length} OF {palettes.length} SPECTRAL ARCHIVE ENTRIES
+              </div>
+              {(managerSearch || managerFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setManagerSearch('');
+                    setManagerFilter('all');
+                  }}
+                  className="text-purple-400 hover:text-purple-300 transition-colors uppercase text-[10px] cursor-pointer"
+                >
+                  Clear filter configurations
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -264,9 +367,16 @@ export default function AdminDashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {palettes.map((p) => {
-                    const isEditing = editingPaletteId === p.id;
-                    return (
+                  {filteredManagerPalettes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-10 text-center text-slate-500 font-medium italic">
+                        No color configurations match the active search query or selected status filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredManagerPalettes.map((p) => {
+                      const isEditing = editingPaletteId === p.id;
+                      return (
                       <tr key={p.id} className="hover:bg-white/5 transition-colors" id={`admin-row-${p.id}`}>
                         
                         <td className="py-3.5 px-4 max-w-xs">
@@ -418,7 +528,7 @@ export default function AdminDashboard({
 
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>

@@ -224,7 +224,7 @@ export default function ExploreArchives({
                   <button
                     key={tag}
                     onClick={() => setSearchQuery(isSelected ? '' : tag)}
-                    className={`text-[10px] px-3 py-1 rounded-full transition-all font-bold ${
+                    className={`text-[13px] px-3 py-1 rounded-full transition-all font-bold ${
                       isSelected 
                         ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black hover:scale-105' 
                         : 'bg-white/5 text-slate-300 hover:bg-white/15 hover:text-white border border-white/5'
