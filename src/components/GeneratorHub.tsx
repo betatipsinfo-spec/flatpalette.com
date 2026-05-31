@@ -238,6 +238,9 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
       return next;
     });
     setIsSaved(false);
+
+    // Auto hover/advance to the next slot index
+    setActiveSlotIndex((prevIdx) => (prevIdx + 1) % 5);
   };
 
   // Helper to extract 5 dominant colors and set them as a beautiful sequence
@@ -719,7 +722,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
               </div>
 
               {/* Squeezed interactive image container */}
-              <div className="w-full flex flex-col items-center justify-center p-3 bg-slate-950/40 rounded-xl border border-white/5 relative h-52">
+              <div className="w-full flex flex-col items-center justify-center p-3 bg-slate-950/40 rounded-xl border border-white/5 relative h-80">
                 <div className="relative h-full max-w-full overflow-hidden rounded-lg group select-none flex items-center justify-center">
                   <img
                     src={imageSrc}
@@ -849,7 +852,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
               {/* Preset selection flow */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-slate-400 font-bold block">Click to toggle popular tags:</span>
+                  <span className="text-[11px] font-mono text-slate-400 font-bold block">Click to toggle popular tags:</span>
                   <div className="flex items-center gap-1">
                     <input
                       type="text"
@@ -868,14 +871,14 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
                           }
                         }
                       }}
-                      className="w-24 bg-white/5 border border-white/10 hover:border-white/20 text-[8.5px] text-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-[#00FFD1]/30 transition-all placeholder-slate-500 font-medium"
+                      className="w-24 bg-white/5 border border-white/10 hover:border-white/20 text-[10px] text-slate-300 rounded px-1.5 py-0.5 outline-none focus:border-[#00FFD1]/30 transition-all placeholder-slate-500 font-medium"
                       title="Type a tag and press Enter to save as preset badge"
                     />
                   </div>
                 </div>
                 <motion.div 
                   layout
-                  className="flex flex-wrap gap-1 max-h-[72px] overflow-y-auto pr-1"
+                  className="flex flex-wrap gap-1.5"
                 >
                   <AnimatePresence mode="popLayout">
                     {sortedPopularTagsByHue.map((tag) => {
@@ -888,7 +891,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
                           exit={{ opacity: 0, scale: 0.82 }}
                           transition={{ type: "spring", stiffness: 450, damping: 30 }}
                           layout
-                          className={`group relative inline-flex items-center gap-1 text-[9.5px] rounded transition-all font-semibold border ${
+                          className={`group relative inline-flex items-center gap-1 text-[11.5px] rounded transition-all font-semibold border ${
                             isSelected 
                               ? 'bg-purple-900/40 border-purple-500/30 text-purple-300 hover:bg-purple-950/40' 
                               : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
@@ -913,7 +916,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
                                 tagToDelete: tag
                               });
                             }}
-                            className="text-[11px] leading-none hover:text-red-400 text-slate-500 opacity-0 group-hover:opacity-100 pr-1 transition-opacity cursor-pointer border-l border-white/10 pl-1"
+                            className="text-[13px] leading-none hover:text-red-400 text-slate-500 opacity-0 group-hover:opacity-100 pr-1 transition-opacity cursor-pointer border-l border-white/10 pl-1"
                             title={`Remove ${tag} preset`}
                           >
                             &times;
@@ -927,7 +930,7 @@ export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps
                         initial={{ opacity: 0, y: -2 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="text-[10px] text-slate-500 italic"
+                        className="text-[12px] text-slate-500 italic"
                       >
                         No popular tags. Type one above to store!
                       </motion.span>
