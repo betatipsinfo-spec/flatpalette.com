@@ -40,9 +40,9 @@ export default function AdminDashboard({
   const [managerSearch, setManagerSearch] = useState('');
   const [managerFilter, setManagerFilter] = useState<'all' | 'approved' | 'pending' | 'staff'>('all');
 
-  // Computed/filtered palettes for moderation
+  // Computed/filtered palettes for moderation (capped at 1000)
   const filteredManagerPalettes = React.useMemo(() => {
-    return palettes.filter((p) => {
+    const list = palettes.filter((p) => {
       // 1. Status Filter
       if (managerFilter === 'approved' && !p.approved) return false;
       if (managerFilter === 'pending' && p.approved) return false;
@@ -60,6 +60,7 @@ export default function AdminDashboard({
 
       return true;
     });
+    return list;
   }, [palettes, managerFilter, managerSearch]);
   
   // Custom dialog confirmation modal state

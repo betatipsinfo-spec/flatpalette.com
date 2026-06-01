@@ -146,11 +146,36 @@ export default function App() {
           })));
         }
 
-        // 3. Fetch Palettes
-        const { data: dbPalettes, error: fetchPalettesError } = await supabase
-          .from('palettes')
-          .select('*')
-          .order('likes', { ascending: false });
+        // 3. Fetch Palettes - Support fetching unlimited items (>1000) from Supabase in batches
+        let dbPalettes: any[] = [];
+        let page = 0;
+        const limitSize = 1000;
+        let hasMore = true;
+        let fetchPalettesError = null;
+
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('palettes')
+            .select('*')
+            .order('likes', { ascending: false })
+            .range(page * limitSize, (page + 1) * limitSize - 1);
+
+          if (error) {
+            fetchPalettesError = error;
+            break;
+          }
+
+          if (data && data.length > 0) {
+            dbPalettes = [...dbPalettes, ...data];
+            if (data.length < limitSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
 
         if (fetchPalettesError) {
           console.error("Failed to fetch initial palettes from Supabase:", fetchPalettesError);
@@ -355,7 +380,7 @@ export default function App() {
     }
   }, []);
 
-  // Global search filtering for Simple feed on Home Tab
+  // Global search filtering for Simple feed on Home Tab (capped at 1000)
   const homeFilteredPalettes = useMemo(() => {
     let result = palettes.filter((p) => p.approved);
 
