@@ -1,14 +1,18 @@
 import React from 'react';
-import { ShieldCheck, Info, FileText, CheckCircle2, Award, Heart, Sparkles, Layers, Sliders, Laptop, Globe } from 'lucide-react';
-import { SiteConfig } from '../types';
+import { ShieldCheck, Info, FileText, CheckCircle2, Award, Heart, Sparkles, Layers, Sliders, Laptop, Globe, Network } from 'lucide-react';
+import { SiteConfig, Palette } from '../types';
+import DesignUtilities from './DesignUtilities';
+import FAQSection from './FAQSection';
+import SitemapViewer from './SitemapViewer';
 
 interface AboutAndPoliciesProps {
-  view: 'about' | 'privacy' | 'terms';
+  view: 'about' | 'privacy' | 'terms' | 'sitemap';
   siteConfig: SiteConfig;
   setActiveTab: (tab: string) => void;
+  palettes?: Palette[];
 }
 
-export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: AboutAndPoliciesProps) {
+export default function AboutAndPolicies({ view, siteConfig, setActiveTab, palettes = [] }: AboutAndPoliciesProps) {
   const accentColor = siteConfig.primaryNeonAccent || '#00FFD1';
 
   return (
@@ -20,6 +24,7 @@ export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: Abo
           {view === 'about' && <Info className="h-6 w-6" />}
           {view === 'privacy' && <ShieldCheck className="h-6 w-6" />}
           {view === 'terms' && <FileText className="h-6 w-6" />}
+          {view === 'sitemap' && <Network className="h-6 w-6" />}
         </div>
         
         <h1 className="text-3xl sm:text-4.5xl font-black text-white tracking-tight leading-none mb-3">
@@ -32,11 +37,15 @@ export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: Abo
           {view === 'terms' && (
             <span>Terms of <span className="text-[#00FFD1]" style={{ color: accentColor }}>Service</span></span>
           )}
+          {view === 'sitemap' && (
+            <span>Interactive <span className="text-[#00FFD1]" style={{ color: accentColor }}>Sitemap & SEO</span></span>
+          )}
         </h1>
         <p className="text-slate-400 text-xs sm:text-base max-w-2xl font-medium">
           {view === 'about' && "The speed tier color architecture system curated for elite screen configurations, developers, and designers."}
           {view === 'privacy' && "Clear information on how flatpalette handles localized variables, session structures, and API keys."}
           {view === 'terms' && "Standard code repository release rules, CC0 Public Domain guidelines, and generative AI parameters."}
+          {view === 'sitemap' && "Explore live crawlers index trees, canonical URL mappings, and structural schema coordinates."}
         </p>
       </div>
 
@@ -191,6 +200,18 @@ export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: Abo
             </div>
           )}
 
+          {/* VIEW 4: INTERACTIVE SITEMAP VIEW */}
+          {view === 'sitemap' && (
+            <div className="space-y-6 animate-fade-in" id="sitemap-view-mount">
+              <SitemapViewer 
+                theme="dark" 
+                siteConfig={siteConfig} 
+                setActiveTab={setActiveTab} 
+                palettes={palettes} 
+              />
+            </div>
+          )}
+
         </div>
 
         {/* Right Side: Quick info panel / badges (Col span 4) */}
@@ -257,6 +278,16 @@ export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: Abo
                   <FileText className="h-3.5 w-3.5 text-slate-500" />
                 </button>
               )}
+              {view !== 'sitemap' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('sitemap')}
+                  className="w-full text-left py-2 px-3 rounded-lg hover:bg-white/5 text-xs text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-between"
+                >
+                  <span>Interactive Sitemap Center</span>
+                  <Network className="h-3.5 w-3.5 text-slate-500" />
+                </button>
+              )}
 
               <div className="border-t border-white/5 mt-2 pt-2.5">
                 <button
@@ -274,6 +305,12 @@ export default function AboutAndPolicies({ view, siteConfig, setActiveTab }: Abo
         </div>
 
       </div>
+
+      {/* Free Creative Design Utilities Integration */}
+      <DesignUtilities theme="dark" siteConfig={siteConfig} />
+
+      {/* Interactive FAQ Section */}
+      <FAQSection theme="dark" siteConfig={siteConfig} />
 
     </div>
   );

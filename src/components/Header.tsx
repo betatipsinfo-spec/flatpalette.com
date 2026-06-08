@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sparkles, Settings2, Plus, LogIn, Laptop, Layers, Sliders, HelpCircle, Sun, Moon } from 'lucide-react';
+import { Search, Sparkles, Settings2, Plus, LogIn, Laptop, Layers, Sliders, HelpCircle, Sun, Moon, Palette, ChevronDown, ExternalLink, ChevronRight, Disc, Wrench, Code, Layout, Type, Image, Bookmark } from 'lucide-react';
 import { SiteConfig } from '../types';
 import { supabase } from '../supabaseClient';
 
@@ -31,6 +31,8 @@ export default function Header({
   setTheme,
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [colorsDropdownOpen, setColorsDropdownOpen] = useState(false);
+  const [freeToolsDropdownOpen, setFreeToolsDropdownOpen] = useState(false);
 
   // Nav list configuration
   const navItems = [
@@ -100,6 +102,299 @@ export default function Header({
                 </button>
               );
             })}
+
+            {/* Colors Dropdown Menu */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setColorsDropdownOpen(true)}
+              onMouseLeave={() => setColorsDropdownOpen(false)}
+            >
+              <button
+                id="nav-colors-dropdown-trigger"
+                onClick={() => setColorsDropdownOpen(!colorsDropdownOpen)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wide transition-all ${
+                  colorsDropdownOpen 
+                    ? 'text-[#00FFD1] bg-white/5' 
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+                style={colorsDropdownOpen ? { color: siteConfig.primaryNeonAccent || '#00FFD1' } : {}}
+              >
+                <Palette className="h-3.5 w-3.5 opacity-70" />
+                <span>Colors</span>
+                <ChevronDown className={`h-3 w-3 opacity-70 transition-transform duration-200 ${colorsDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {colorsDropdownOpen && (
+                <div 
+                  className={`absolute left-0 mt-1 w-64 rounded-xl border p-2.5 shadow-xl backdrop-blur-lg transition-all duration-200 ${
+                    theme === 'light'
+                      ? 'bg-white border-slate-200 shadow-slate-200/50 text-slate-800'
+                      : 'bg-[#090d16]/95 border-white/10 shadow-black/80 text-slate-205'
+                  }`}
+                  id="nav-colors-dropdown-menu"
+                >
+                  <p className={`text-[10px] uppercase tracking-widest font-mono mb-2 px-2.5 ${
+                    theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    Color Utilities
+                  </p>
+                  <button
+                    onClick={() => {
+                      setActiveTab('color-names');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Palette className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Color Names</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Exhaustive list of standardized hex values, RGB values & HTML color titles.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('color-wheel');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-t border-slate-100 pt-2.5 mt-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white border-t border-white/5 pt-2.5 mt-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Disc className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Color Wheel</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Interactive color space with harmony formulas, custom shades, tints, and real-time contrast calculations.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Free Tools Dropdown Menu */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setFreeToolsDropdownOpen(true)}
+              onMouseLeave={() => setFreeToolsDropdownOpen(false)}
+            >
+              <button
+                id="nav-freetools-dropdown-trigger"
+                onClick={() => setFreeToolsDropdownOpen(!freeToolsDropdownOpen)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wide transition-all ${
+                  freeToolsDropdownOpen 
+                    ? 'text-[#00FFD1] bg-white/5' 
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+                style={freeToolsDropdownOpen ? { color: siteConfig.primaryNeonAccent || '#00FFD1' } : {}}
+              >
+                <Wrench className="h-3.5 w-3.5 opacity-70" />
+                <span>Free Tools</span>
+                <ChevronDown className={`h-3 w-3 opacity-70 transition-transform duration-200 ${freeToolsDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {freeToolsDropdownOpen && (
+                <div 
+                  className={`absolute left-0 mt-1 w-72 rounded-xl border p-2.5 shadow-xl backdrop-blur-lg transition-all duration-200 ${
+                    theme === 'light'
+                      ? 'bg-white border-slate-200 shadow-slate-200/50 text-slate-800'
+                      : 'bg-[#090d16]/95 border-white/10 shadow-black/80 text-slate-205'
+                  }`}
+                  id="nav-freetools-dropdown-menu"
+                >
+                  <p className={`text-[10px] uppercase tracking-widest font-mono mb-2 px-2.5 ${
+                    theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                  }`}>
+                    Developer & Designer Tools
+                  </p>
+                  
+                  <div className="space-y-1 max-h-[350px] overflow-y-auto pr-1">
+                    <a
+                      href="https://templatemind.com/tools/icons"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Image className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">Free Icon Gallery</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Curated library of vector stroke line icon packs.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://templatemind.com/tools/color-palettes"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Palette className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">Free Color Palette</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Inspirational curated multi-tone layout formulas.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://templatemind.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Layout className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">Free UI Resources</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          High-quality layered templates, kits, and asset mockups.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://templatemind.com/tools/css-fonts"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Type className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">CSS Font Stacks</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Web safe font combinations with elegant fallback code.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://faviconexpert.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Bookmark className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">Favicon Studio</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Online vector favicon generator and brand mask designer.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://freecss.net/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer border-t ${
+                        theme === 'light'
+                          ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-slate-100 font-sans'
+                          : 'hover:bg-white/5 text-slate-300 hover:text-white border-white/5 font-sans'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 mt-1 ${
+                        theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                      }`}>
+                        <Code className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <div className="space-y-0.5 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold leading-none">CSS Suit & Free Fonts</span>
+                          <ExternalLink className="h-2.5 w-2.5 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                        </div>
+                        <p className={`text-[10px] leading-snug ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>
+                          Full premium templates, font sheets, and helper front-end guides.
+                        </p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Action Row */}
@@ -279,6 +574,162 @@ export default function Header({
                 </button>
               );
             })}
+
+            {/* Colors link in mobile drawer */}
+            <div className="flex flex-col border-t border-white/5 pt-2 mt-2 gap-1.5">
+              <div className="flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">
+                <span>Color Utilities</span>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab('color-names');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Color Names</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('color-wheel');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Disc className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Color Wheel</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Free Tools link in mobile drawer */}
+            <div className="flex flex-col border-t border-white/5 pt-2 mt-2 gap-1.5">
+              <div className="flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">
+                <span>Free Tools</span>
+              </div>
+              <a
+                href="https://templatemind.com/tools/icons"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Image className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Free Icon Gallery</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+
+              <a
+                href="https://templatemind.com/tools/color-palettes"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Free Color Palette</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+
+              <a
+                href="https://templatemind.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Layout className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Free UI Resources</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+
+              <a
+                href="https://templatemind.com/tools/css-fonts"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Type className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>CSS Font Stacks</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+
+              <a
+                href="https://faviconexpert.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Bookmark className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Favicon Studio</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+
+              <a
+                href="https://freecss.net/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Code className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>CSS Suit & Free Fonts</span>
+                </div>
+                <ExternalLink className="h-4 w-4 text-slate-500" />
+              </a>
+            </div>
 
             {sessionUser ? (
               <button

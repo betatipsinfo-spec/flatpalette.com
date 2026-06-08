@@ -5,12 +5,21 @@ import { generateRandomHex, generateHarmony, getContrastColor, hexToRgbString, h
 
 interface GeneratorHubProps {
   onAddSubittedPalette: (title: string, colors: string[], tags: string[]) => void;
+  initialColors?: string[];
 }
 
-export default function GeneratorHub({ onAddSubittedPalette }: GeneratorHubProps) {
-  const [colors, setColors] = useState<string[]>([
-    '#00FFD1', '#f10b7f', '#241244', '#ffd700', '#fbfbfb'
-  ]);
+export default function GeneratorHub({ onAddSubittedPalette, initialColors }: GeneratorHubProps) {
+  const [colors, setColors] = useState<string[]>(() => {
+    return initialColors && initialColors.length > 0
+      ? initialColors
+      : ['#00FFD1', '#f10b7f', '#241244', '#ffd700', '#fbfbfb'];
+  });
+
+  useEffect(() => {
+    if (initialColors && initialColors.length > 0) {
+      setColors(initialColors);
+    }
+  }, [initialColors]);
   const [locked, setLocked] = useState<boolean[]>([false, false, false, false, false]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [harmonyType, setHarmonyType] = useState<'random' | 'monochromatic' | 'analogous' | 'complementary' | 'triadic' | 'split-complementary'>('random');

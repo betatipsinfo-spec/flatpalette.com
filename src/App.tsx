@@ -18,6 +18,8 @@ import LegalContact from './components/LegalContact';
 import AboutAndPolicies from './components/AboutAndPolicies';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
+import ColorNames from './components/ColorNames';
+import ColorWheel from './components/ColorWheel';
 import { supabase } from './supabaseClient';
 
 export default function App() {
@@ -44,6 +46,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [submitModalOpen, setSubmitModalOpen] = useState<boolean>(false);
   const [sessionUser, setSessionUser] = useState<any>(null);
+  const [generatorSeedColors, setGeneratorSeedColors] = useState<string[] | undefined>(undefined);
 
   // Theme support (light/dark state)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -988,7 +991,7 @@ export default function App() {
                 {/* Tab 3: GENERATOR (Interactive Space locked generators) */}
                 {activeTab === 'generator' && (
                   sessionUser ? (
-                    <GeneratorHub onAddSubittedPalette={handleAddNewPalette} />
+                    <GeneratorHub onAddSubittedPalette={handleAddNewPalette} initialColors={generatorSeedColors} />
                   ) : (
                     <div className="mx-auto max-w-xl py-16 px-6 text-center space-y-6" id="generator-locked-state">
                       <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 mb-2 shadow-inner">
@@ -1015,6 +1018,33 @@ export default function App() {
                   <LegalContact 
                     onAddSubittedPalette={handleAddNewPalette}
                     onAddLead={handleAddLeadRegistry}
+                    siteConfig={siteConfig}
+                  />
+                )}
+
+                {/* Tab 5: COLOR NAMES (Redesigned interactive color names lookups) */}
+                {activeTab === 'color-names' && (
+                  <ColorNames
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#e11d48', '#4f46e5', '#16a34a', '#a3e635']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
+                {/* Tab 6: COLOR WHEEL (Redesigned graphic interactive color wheel spectrum) */}
+                {activeTab === 'color-wheel' && (
+                  <ColorWheel
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#e11d48', '#4f46e5', '#16a34a', '#a3e635']);
+                      setActiveTab('generator');
+                    }}
                   />
                 )}
 
@@ -1024,6 +1054,7 @@ export default function App() {
                     view="about" 
                     siteConfig={siteConfig} 
                     setActiveTab={setActiveTab} 
+                    palettes={palettes}
                   />
                 )}
 
@@ -1033,6 +1064,7 @@ export default function App() {
                     view="privacy" 
                     siteConfig={siteConfig} 
                     setActiveTab={setActiveTab} 
+                    palettes={palettes}
                   />
                 )}
 
@@ -1042,6 +1074,17 @@ export default function App() {
                     view="terms" 
                     siteConfig={siteConfig} 
                     setActiveTab={setActiveTab} 
+                    palettes={palettes}
+                  />
+                )}
+
+                {/* Sitemap index view */}
+                {activeTab === 'sitemap' && (
+                  <AboutAndPolicies 
+                    view="sitemap" 
+                    siteConfig={siteConfig} 
+                    setActiveTab={setActiveTab} 
+                    palettes={palettes}
                   />
                 )}
 
@@ -1155,6 +1198,7 @@ export default function App() {
                 <button onClick={() => { setActiveTab('privacy'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer">Privacy Policy</button>
                 <button onClick={() => { setActiveTab('terms'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer">Terms of Service</button>
                 <button onClick={() => { setActiveTab('guidelines'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-white transition-colors cursor-pointer">Guidelines Core</button>
+                <button onClick={() => { setActiveTab('sitemap'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">Interactive Sitemap</button>
               </div>
             </div>
 

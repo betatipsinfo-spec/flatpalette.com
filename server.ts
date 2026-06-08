@@ -3,8 +3,14 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
+
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://mltjvehaulvxbsgrqhwt.supabase.co";
+const SUPABASE_PUBLIC_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLIC_KEY || "sb_publishable_1pt7eQsZ2Lep7qpwuFB_rg_jFuFBD8M";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -181,6 +187,75 @@ Respond with ONLY the suggested title name itself. DO NOT wrap it in quotes, DO 
     } catch (error: any) {
       console.error("Gemini Title Suggestion Error:", error);
       res.status(500).json({ error: error.message || "Failed to suggest title" });
+    }
+  });
+
+  // Dynamic Sitemap XML Endpoint
+  app.get("/sitemap.xml", async (req, res) => {
+    res.header("Content-Type", "application/xml");
+    try {
+      const todayString = new Date().toISOString().split("T")[0];
+      const staticUrls = [
+        { loc: "https://flatpalette.com/", priority: "1.0", changefreq: "daily" },
+        { loc: "https://flatpalette.com/?tab=explore", priority: "0.9", changefreq: "daily" },
+        { loc: "https://flatpalette.com/?tab=generator", priority: "0.9", changefreq: "daily" },
+        { loc: "https://flatpalette.com/?tab=color-names", priority: "0.8", changefreq: "weekly" },
+        { loc: "https://flatpalette.com/?tab=color-wheel", priority: "0.8", changefreq: "weekly" },
+        { loc: "https://flatpalette.com/?tab=guidelines", priority: "0.7", changefreq: "weekly" },
+        { loc: "https://flatpalette.com/?tab=about", priority: "0.6", changefreq: "monthly" },
+        { loc: "https://flatpalette.com/?tab=privacy", priority: "0.5", changefreq: "monthly" },
+        { loc: "https://flatpalette.com/?tab=terms", priority: "0.5", changefreq: "monthly" },
+        { loc: "https://flatpalette.com/?tab=sitemap", priority: "0.5", changefreq: "weekly" }
+      ];
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+      // Render static URLs
+      for (const url of staticUrls) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${url.loc}</loc>\n`;
+        xml += `    <lastmod>${todayString}</lastmod>\n`;
+        xml += `    <changefreq>${url.changefreq}</changefreq>\n`;
+        xml += `    <priority>${url.priority}</priority>\n`;
+        xml += `  </url>\n`;
+      }
+
+      // Query approved database palettes and render matching dynamic paths
+      try {
+        const { data: dbPalettes, error: fetchError } = await supabase
+          .from("palettes")
+          .select("id, title, created_at, approved, updated_at")
+          .eq("approved", true)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+        if (!fetchError && dbPalettes && dbPalettes.length > 0) {
+          for (const palette of dbPalettes) {
+            const slug = palette.title
+              ? palette.title.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-")
+              : `palette-${palette.id}`;
+            const loc = `https://flatpalette.com/?palette=${palette.id}&amp;slug=${slug}`;
+            const rawDate = (palette as any).updated_at || palette.created_at || todayString;
+            const lastMod = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
+
+            xml += `  <url>\n`;
+            xml += `    <loc>${loc}</loc>\n`;
+            xml += `    <lastmod>${lastMod}</lastmod>\n`;
+            xml += `    <changefreq>monthly</changefreq>\n`;
+            xml += `    <priority>0.7</priority>\n`;
+            xml += `  </url>\n`;
+          }
+        }
+      } catch (dbErr) {
+        console.error("Failed to query dynamic sitemap database keys:", dbErr);
+      }
+
+      xml += `</urlset>`;
+      res.send(xml);
+    } catch (err: any) {
+      console.error("Sitemap XML generator failure:", err);
+      res.status(500).send("Unable to generate XML output");
     }
   });
 

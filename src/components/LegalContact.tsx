@@ -4,12 +4,16 @@ import {
   HelpCircle, Star, Layers, CheckCircle2, SlidersHorizontal, LockKeyhole
 } from 'lucide-react';
 import { generateRandomHex, getContrastColor } from '../utils';
+import { SiteConfig } from '../types';
+import DesignUtilities from './DesignUtilities';
+import FAQSection from './FAQSection';
 
 interface LegalContactProps {
   onAddSubittedPalette: (title: string, colors: string[], tags: string[]) => void;
   onAddLead: (email: string, type: 'newsletter' | 'feature_request', message?: string) => void;
   onSubmitSuccess?: () => void;
   compactSubmissionOnly?: boolean;
+  siteConfig?: SiteConfig;
 }
 
 export default function LegalContact({
@@ -17,6 +21,7 @@ export default function LegalContact({
   onAddLead,
   onSubmitSuccess,
   compactSubmissionOnly = false,
+  siteConfig,
 }: LegalContactProps) {
   // Palette Submission states
   const [paletteTitle, setPaletteTitle] = useState('');
@@ -282,6 +287,12 @@ export default function LegalContact({
         </div>
 
       </section>
+
+      {/* Free Creative Design Utilities Integration */}
+      <DesignUtilities theme="dark" siteConfig={siteConfig} />
+
+      {/* Interactive FAQ Section */}
+      <FAQSection theme="dark" siteConfig={siteConfig} />
 
     </div>
   );
