@@ -2,6 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Copy, Check, Palette, Sparkles, Filter, ChevronRight, Hash, Eye, RefreshCw, BarChart2, X, Sliders, Disc, HelpCircle, Compass, Zap, Layers, AlertCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SiteConfig } from '../types';
+import DesignUtilities from './DesignUtilities';
+import FAQSection from './FAQSection';
 import { DATA_NAMED_COLORS } from '../data/colorNames';
 
 interface ColorWheelProps {
@@ -1103,6 +1105,12 @@ export default function ColorWheel({ theme, siteConfig, showToast, onSendToGener
 
         </div>
       </div>
+
+      {/* Free Creative Design Utilities Integration */}
+      <DesignUtilities theme={theme} siteConfig={siteConfig} />
+
+      {/* Interactive FAQ Section */}
+      <FAQSection theme={theme} siteConfig={siteConfig} />
 
     </motion.div>
   );
