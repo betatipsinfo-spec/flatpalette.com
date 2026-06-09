@@ -20,6 +20,11 @@ import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
 import ColorNames from './components/ColorNames';
 import ColorWheel from './components/ColorWheel';
+import WebSafeColors from './components/WebSafeColors';
+import TailwindColors from './components/TailwindColors';
+import MaterialColors from './components/MaterialColors';
+import FlatColors from './components/FlatColors';
+import ColorPicker from './components/ColorPicker';
 import { supabase } from './supabaseClient';
 
 export default function App() {
@@ -1048,6 +1053,71 @@ export default function App() {
                   />
                 )}
 
+                {/* Tab 7: 216 WEB SAFE COLORS */}
+                {activeTab === 'web-safe-colors' && (
+                  <WebSafeColors
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#e11d48', '#4f46e5', '#16a34a', '#a3e635']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
+                {/* Tab 8: TAILWIND COLOR SPECIFICATION CHART */}
+                {activeTab === 'tailwind-colors' && (
+                  <TailwindColors
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#e11d48', '#4f46e5', '#16a34a', '#a3e635']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
+                {/* Tab 9: MATERIAL DESIGN COLOR CHART */}
+                {activeTab === 'material-colors' && (
+                  <MaterialColors
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#ff8a80', '#e91e63', '#3f51b5', '#4caf50', '#ffeb3b']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
+                {/* Tab 10: FLAT DESIGN COLOR CHART */}
+                {activeTab === 'flat-colors' && (
+                  <FlatColors
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#1abc9c', '#e67e22', '#9b59b6', '#34495e', '#ecf0f1']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
+                {/* Tab 11: INTERACTIVE COHESIVE COLOR PICKER */}
+                {activeTab === 'color-picker' && (
+                  <ColorPicker
+                    theme={theme}
+                    siteConfig={siteConfig}
+                    showToast={showToast}
+                    onSendToGenerator={(hexColor) => {
+                      setGeneratorSeedColors([hexColor, '#00ffd1', '#ff6b6b', '#a55eea', '#2f3542', '#ffffff']);
+                      setActiveTab('generator');
+                    }}
+                  />
+                )}
+
                 {/* About application view */}
                 {activeTab === 'about' && (
                   <AboutAndPolicies 
@@ -1198,6 +1268,10 @@ export default function App() {
                 <button onClick={() => { setActiveTab('privacy'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer">Privacy Policy</button>
                 <button onClick={() => { setActiveTab('terms'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer">Terms of Service</button>
                 <button onClick={() => { setActiveTab('guidelines'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-white transition-colors cursor-pointer">Guidelines Core</button>
+                <button onClick={() => { setActiveTab('web-safe-colors'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">216 Web Safe Colors</button>
+                <button onClick={() => { setActiveTab('tailwind-colors'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">Tailwind Color Chart</button>
+                <button onClick={() => { setActiveTab('material-colors'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">Material Design Color</button>
+                <button onClick={() => { setActiveTab('flat-colors'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">Flat Color Design</button>
                 <button onClick={() => { setActiveTab('sitemap'); setIsAdmin(false); setSelectedPalette(null); }} className="text-left text-slate-400 hover:text-[#00FFD1] transition-colors cursor-pointer font-bold">Interactive Sitemap</button>
               </div>
             </div>

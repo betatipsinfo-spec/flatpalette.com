@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Sparkles, Settings2, Plus, LogIn, Laptop, Layers, Sliders, HelpCircle, Sun, Moon, Palette, ChevronDown, ExternalLink, ChevronRight, Disc, Wrench, Code, Layout, Type, Image, Bookmark } from 'lucide-react';
+import { Search, Sparkles, Settings2, Plus, LogIn, Laptop, Layers, Sliders, HelpCircle, Sun, Moon, Palette, ChevronDown, ExternalLink, ChevronRight, Disc, Wrench, Code, Layout, Type, Image, Bookmark, Grid } from 'lucide-react';
 import { SiteConfig } from '../types';
 import { supabase } from '../supabaseClient';
 
@@ -140,6 +140,35 @@ export default function Header({
                   </p>
                   <button
                     onClick={() => {
+                      setActiveTab('color-picker');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 mb-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white mb-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Sliders className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Color Picker</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Interactive color space analyzer with real-time RGB/HSL/CMYK specs & contrast scoring.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
                       setActiveTab('color-names');
                       setColorsDropdownOpen(false);
                     }}
@@ -192,6 +221,122 @@ export default function Header({
                         theme === 'light' ? 'text-slate-500' : 'text-slate-400'
                       }`}>
                         Interactive color space with harmony formulas, custom shades, tints, and real-time contrast calculations.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('web-safe-colors');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-t border-slate-100 pt-2.5 mt-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white border-t border-white/5 pt-2.5 mt-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Grid className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Web Safe Colors</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Complete interactive map of the 216 standard web-safe color grid with custom snapper and analyzer.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('tailwind-colors');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-t border-slate-100 pt-2.5 mt-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white border-t border-white/5 pt-2.5 mt-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Sparkles className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Tailwind Colors</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Full interactive Tailwind CSS v3 & v4 chart, hex scanner, and utilities lookup mapper.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('material-colors');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-t border-slate-100 pt-2.5 mt-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white border-t border-white/5 pt-2.5 mt-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Palette className="h-4 w-4 text-amber-400" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Material Design Color</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-amber-450" />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Google's Material Design official palette chart, intensity weights, and hex mapping converter.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveTab('flat-colors');
+                      setColorsDropdownOpen(false);
+                    }}
+                    className={`group flex items-start text-left w-full gap-3 p-2.5 rounded-lg transition-all cursor-pointer ${
+                      theme === 'light'
+                        ? 'hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-t border-slate-100 pt-2.5 mt-1'
+                        : 'hover:bg-white/5 text-slate-300 hover:text-white border-t border-white/5 pt-2.5 mt-1'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      theme === 'light' ? 'bg-slate-100 group-hover:bg-slate-200/60' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Palette className="h-4 w-4 text-orange-400" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold leading-none">Flat Color Design</span>
+                        <ChevronRight className="h-3 w-3 opacity-45 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-orange-450" />
+                      </div>
+                      <p className={`text-[10px] leading-snug ${
+                        theme === 'light' ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
+                        Classic retro Flat UI color palette index with interactive contrast meters.
                       </p>
                     </div>
                   </button>
@@ -582,6 +727,24 @@ export default function Header({
               </div>
               <button
                 onClick={() => {
+                  setActiveTab('color-picker');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Sliders className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Color Picker</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
                   setActiveTab('color-names');
                   setMobileMenuOpen(false);
                 }}
@@ -612,6 +775,78 @@ export default function Header({
                 <div className="flex items-center gap-3">
                   <Disc className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
                   <span>Color Wheel</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('web-safe-colors');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Grid className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Web Safe Colors</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('tailwind-colors');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-4 w-4 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />
+                  <span>Tailwind Colors</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('material-colors');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4 text-amber-450" />
+                  <span>Material Design Colors</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab('flat-colors');
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-left w-full transition-all cursor-pointer ${
+                  theme === 'light'
+                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 bg-slate-50/50'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Palette className="h-4 w-4 text-orange-450" />
+                  <span>Flat Design Colors</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-500" />
               </button>
