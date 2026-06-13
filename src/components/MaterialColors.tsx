@@ -747,11 +747,48 @@ export default function MaterialColors({ theme, siteConfig, showToast }: Materia
         </div>
       </div>
 
-      {/* 5. Clean utilities section integration */}
-      <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      {/* 5. Custom FAQ Section first */}
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Material Design Colors FAQ"
+        subtitle="Learn about standard material hue scaling, high-vibrancy A-Accent tones, and Google's accessibility rules."
+        customItems={[
+          {
+            id: 'md-palette',
+            category: 'Material Tech',
+            question: 'What is the Material Design color palette and how is it structured?',
+            answer: "Google's Material Design system provides a highly cohesive color framework structured across primary color keys numbered 50 to 900, alongside special interactive high-saturation Accent scales labeled A100 through A700.",
+            icon: Code
+          },
+          {
+            id: 'md-accents',
+            category: 'Accent Colors',
+            question: "What do the 'A' accent weights (such as A200 or A700) represent?",
+            answer: "The 'A' prefix specifies Accent tones. These weights feature boosted saturation levels of the core hue, tailored specifically for active states, key interactive indicators, floats, and progress bars.",
+            icon: Layers
+          },
+          {
+            id: 'md-contrast',
+            category: 'Accessibility',
+            question: 'How does the Material Color system enforce high readable contrast?',
+            answer: 'Google designed Material scales to ensure consistent relative luminance step-gaps. This ensures you can easily pair high-weight text on low-weight backgrounds to achieve readable ratios above 4.5:1.',
+            icon: Info
+          },
+          {
+            id: 'md-export',
+            category: 'Export Mode',
+            question: 'Can I port these Material color constants into my stylesheets?',
+            answer: 'Absolutely! Click on any swatch or open the inspector to copy HEX values, styled CSS definitions, or send any color directly to seed our live generator.',
+            icon: Sparkles
+          }
+        ]}
+      />
 
-      {/* 6. FAQ component mapping */}
-      <FAQSection theme={theme} siteConfig={siteConfig} />
+      {/* 6. Clean utilities section integration below FAQ */}
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
 
       {/* Interactive Popup Dynamic Color Inspector Modal (Popup must be more than 400px wide, exactly max-w-[450px]) */}
       <AnimatePresence>

@@ -1106,11 +1106,48 @@ export default function ColorWheel({ theme, siteConfig, showToast, onSendToGener
         </div>
       </div>
 
-      {/* Free Creative Design Utilities Integration */}
-      <DesignUtilities theme={theme} siteConfig={siteConfig} />
-
       {/* Interactive FAQ Section */}
-      <FAQSection theme={theme} siteConfig={siteConfig} />
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Interactive Color Wheel FAQ"
+        subtitle="Learn about RYB vs. RGB color wheels, geometric color harmonies, and coordinate systems."
+        customItems={[
+          {
+            id: 'cw-angle',
+            category: 'Color Physics',
+            question: 'How with the wheel translates visual clicks to color values?',
+            answer: 'Your click coordinates are calculated from the wheel center as polar coordinates. The angle (0° to 360°) corresponds directly to Hue, and the radius distance represents Saturation. These are translated instantly to dry RGB, HEX, and HSL formats.',
+            icon: Compass
+          },
+          {
+            id: 'cw-harmonies',
+            category: 'Harmonics',
+            question: 'What are the classic harmonic structures mapped on the wheel?',
+            answer: 'We map six geometric arrangements: Complementary (polar opposite), Split-Complementary (adjacent split), Triadic (120° equilateral), Tetradic (four points of 90°), Monochromatic (constant angle with shade shifts), and Analogous (adjacent hues).',
+            icon: Palette
+          },
+          {
+            id: 'cw-rgb-ryb',
+            category: 'Color Models',
+            question: 'What is the utility of RGB wheels versus traditional RYB paint wheels?',
+            answer: 'The RGB (Red, Green, Blue) wheel represents the additive light spectrum used by computer monitors and displays. Traditional RYB (Red, Yellow, Blue) paint systems are subtractive, primarily utilized in print media and pigment mixture.',
+            icon: Disc
+          },
+          {
+            id: 'cw-export',
+            category: 'Export Mode',
+            question: 'How can I bridge locked color hues straight to the canvas generator?',
+            answer: 'Any selected lock target can be copied as raw codes, or sent directly to the generator workspace. Simply use the action triggers to seed the live generator with your custom hue parameters.',
+            icon: Sparkles
+          }
+        ]}
+      />
+
+      {/* Free Creative Design Utilities Integration below FAQ */}
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
 
     </motion.div>
   );

@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Copy, Check, Palette, Sparkles, Filter, ChevronRight, Hash, Eye, RefreshCw, BarChart2, X, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DATA_NAMED_COLORS, NamedColor } from '../data/colorNames';
+import FAQSection from './FAQSection';
+import DesignUtilities from './DesignUtilities';
 
 interface ColorNamesProps {
   theme: 'light' | 'dark';
@@ -630,6 +632,48 @@ export default function ColorNames({ theme, siteConfig, showToast, onSendToGener
           </div>
         </div>
       )}
+
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Color Names Index FAQ"
+        subtitle="Answers regarding historical archives, contrast recommendations, and the live display analyzer mechanics."
+        customItems={[
+          {
+            id: 'cn-archives',
+            category: 'Color Archives',
+            question: 'Where do these 900+ distinct color names originate from?',
+            answer: 'This indexing suite compiles color names and pigments from classical art registries, digital CSS standards, natural history taxonomies, and historic paint formulation systems to provide a unified nomenclature standard.',
+            icon: Palette
+          },
+          {
+            id: 'cn-contrast',
+            category: 'Accessibility',
+            question: 'How is the interactive Contrast Advisor score computed?',
+            answer: 'Each color card feeds into our WCAG 2.1 contrast estimator, measuring the relative light luminance ratios of background to standard text layers, outputting recommended pairs and accessibility levels.',
+            icon: Hash
+          },
+          {
+            id: 'cn-preview',
+            category: 'Playground',
+            question: 'Can I test custom text styles directly on top of these colors?',
+            answer: 'Yes! Selecting a color card opens our fullscreen Playground Simulator. You can input custom strings, modify type weights, change tracking spacing, and dial font sizes up and down to observe legibility scores instantly.',
+            icon: Eye
+          },
+          {
+            id: 'cn-export',
+            category: 'Export Solutions',
+            question: 'Can these colors be converted or sent to other development tools?',
+            answer: 'Certainly! Both single HEX/RGB copies and full palette integration ports are functional. You can click to duplicate separate color values or easily transition to the live system generators.',
+            icon: Sparkles
+          }
+        ]}
+      />
+
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
+
     </div>
   );
 }

@@ -623,11 +623,48 @@ export default function WebSafeColors({ theme, siteConfig, showToast, onSendToGe
         )}
       </div>
 
-      {/* 4. Utilities for Web Safe Color layout */}
-      <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      {/* 4. FAQ section first */}
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Web Safe Colors FAQ"
+        subtitle="Learn about 8-bit display restrictions, mathematical safe intervals, and modern retro usage patterns."
+        customItems={[
+          {
+            id: 'ws-definition',
+            category: 'Legacy Tech',
+            question: 'What exactly are Web Safe Colors and are they still relevant today?',
+            answer: 'Web Safe Colors consist of 216 distinct hues that rendered identically on 8-bit monitor screens back in the early internet era. Although current hardware supports billions of colors, this 216-color system remains a popular standard for retro aesthetic designs, pixel art, and styling consistency.',
+            icon: ShieldAlert
+          },
+          {
+            id: 'ws-math',
+            category: 'Mathematics',
+            question: 'Why are the coordinate hex couples limited to 00, 33, 66, 99, CC, and FF?',
+            answer: 'These steps represent six mathematical percentage levels (0%, 20%, 40%, 60%, 80%, and 100%) of the RGB spectrum. Combining six levels of red, six levels of green, and six levels of blue yields 6 × 6 × 6 = 216 mathematical safe increments.',
+            icon: Layers
+          },
+          {
+            id: 'ws-contrast',
+            category: 'Access Standards',
+            question: 'How do the contrast ratings correlate with accessibility and WCAG?',
+            answer: 'Each safe color element computes and reveals its WCAG relative luminance contrast scores when inspected. Ratios above 4.5:1 meet AA requirements for standard type weights, while AAA ratings require 7.0:1 or more.',
+            icon: Info
+          },
+          {
+            id: 'ws-usecase',
+            category: 'Retro Branding',
+            question: 'Can I export web safe assets straight to standard styles?',
+            answer: 'Yes! Selecting a color box displays its code properties. You can copy raw strings, copy styled tailwind structures, or bridge the color straight to the system generator.',
+            icon: Sparkles
+          }
+        ]}
+      />
 
-      {/* 5. FAQ section */}
-      <FAQSection theme={theme} siteConfig={siteConfig} />
+      {/* 5. Utilities for Web Safe Color layout below FAQ */}
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
 
       {/* Interactive Popup Dynamic Color Inspector */}
       <AnimatePresence>

@@ -352,7 +352,13 @@ export default function Header({
             >
               <button
                 id="nav-freetools-dropdown-trigger"
-                onClick={() => setFreeToolsDropdownOpen(!freeToolsDropdownOpen)}
+                onClick={() => {
+                  const element = document.getElementById('design-utilities-section');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                  }
+                  setFreeToolsDropdownOpen(false);
+                }}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold tracking-wide transition-all ${
                   freeToolsDropdownOpen 
                     ? 'text-[#00FFD1] bg-white/5' 
@@ -854,9 +860,24 @@ export default function Header({
 
             {/* Free Tools link in mobile drawer */}
             <div className="flex flex-col border-t border-white/5 pt-2 mt-2 gap-1.5">
-              <div className="flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider font-mono">
-                <span>Free Tools</span>
-              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setTimeout(() => {
+                    const element = document.getElementById('design-utilities-section');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 200);
+                }}
+                className={`flex items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider font-mono w-full text-left cursor-pointer transition-colors ${
+                  theme === 'light' ? 'text-slate-500 hover:text-slate-900' : 'text-slate-400 hover:text-[#00FFD1]'
+                }`}
+                style={{ color: theme === 'light' ? undefined : (siteConfig.primaryNeonAccent || '#00FFD1') }}
+              >
+                <span>Free Tools (Scroll to Utilities)</span>
+                <ChevronRight className="h-3 w-3" />
+              </button>
               <a
                 href="https://templatemind.com/tools/icons"
                 target="_blank"

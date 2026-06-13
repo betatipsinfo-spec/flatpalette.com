@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SiteConfig } from '../types';
+import FAQSection from './FAQSection';
+import DesignUtilities from './DesignUtilities';
 
 interface ColorPickerProps {
   theme: 'light' | 'dark';
@@ -1171,6 +1173,47 @@ export default function ColorPicker({ theme, siteConfig, showToast, onSendToGene
             </code>
           </div>
         </div>
+      </div>
+
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Color Analyzer FAQ"
+        subtitle="Learn about mathematical color models, relative luminance calculation scales, and classic visual harmonies."
+        customItems={[
+          {
+            id: 'cp-spaces',
+            category: 'Color Models',
+            question: 'What color spaces does this picker support and how are they translated?',
+            answer: 'This analyzer supports four core mathematical coordinates: HEX string representing sRGB values, standard Red-Green-Blue (RGB) integers, Hue-Saturation-Lightness (HSL) cylindrical-coordinate representations, and Cyan-Magenta-Yellow-Key (CMYK) subtractive pigment ratios. Adjusting any tract dynamically triggers real-time mathematical transformations to keep all variables sync.',
+            icon: Sliders
+          },
+          {
+            id: 'cp-contrast',
+            category: 'Accessibility',
+            question: 'How is the real-time contrast score calculated, and what do the scores mean?',
+            answer: 'The layout engine computes relative luminance metrics conforming directly to WCAG 2.1 specifications. It assesses contrast ratios against both pure black (#000000) and pure white (#ffffff) canvas backgrounds. A ratio exceeding 4.5:1 receives a "Pass" score for standard body text weights (WCAG AA), and scores exceeding 7.0:1 pass the stricter AAA visual standards.',
+            icon: Info
+          },
+          {
+            id: 'cp-harmonics',
+            category: 'Color Harmonies',
+            question: 'What classic color harmonies are calculated in the matching module?',
+            answer: 'The harmonies drawer dynamically computes 6 distinct classical color formulas: Complementary (180° opposite), Split-Complementary (150° and 210° offsets), Triadic (three segments spaced 120° apart), Tetradic (four segments with 90° offsets), Monochromatic (constant hue with variance in lightness and saturation), and Analogous (adjacent segments spaced 30° apart).',
+            icon: Palette
+          },
+          {
+            id: 'cp-export',
+            category: 'Integration',
+            question: 'Can I export these color configurations directly to the live generator?',
+            answer: 'Yes! You can instantly copy raw hex codes, formatted CSS variables, or JSON structured specs. Furthermore, clicking the "Send to Generator" action feeds your active selection into the live vector palette generator, populating a custom 6-color workspace workspace instantly.',
+            icon: Sparkles
+          }
+        ]}
+      />
+
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
       </div>
 
     </div>

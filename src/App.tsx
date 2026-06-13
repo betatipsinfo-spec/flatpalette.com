@@ -25,6 +25,7 @@ import TailwindColors from './components/TailwindColors';
 import MaterialColors from './components/MaterialColors';
 import FlatColors from './components/FlatColors';
 import ColorPicker from './components/ColorPicker';
+import DesignUtilities from './components/DesignUtilities';
 import { supabase } from './supabaseClient';
 
 export default function App() {
@@ -841,134 +842,8 @@ export default function App() {
                       </div>
 
                       {/* Curated Creative Utilities above footer */}
-                      <div className="mt-20 pt-16 border-t border-white/5" id="curated-creative-toolkit-section">
-                        <div className="text-center space-y-3 mb-12">
-                          <div className="inline-flex items-center justify-center rounded-xl bg-gradient-to-tr from-[#00FFD1] to-purple-600 p-0.5 shadow-md">
-                            <div className={`px-3 py-1 rounded-[10px] ${theme === 'light' ? 'bg-white text-slate-900' : 'bg-slate-950 text-white'} text-[10px] font-bold tracking-wider uppercase flex items-center gap-1`}>
-                              <Sparkles className="h-3.5 w-3.5 text-pink-500 animate-pulse" />
-                              <span>Recommended Workspace Tools</span>
-                            </div>
-                          </div>
-                          <h3 className={`text-xl sm:text-2xl font-black ${theme === 'light' ? 'text-slate-900' : 'text-white'} tracking-tight`}>
-                            Free Creative Design Utilities
-                          </h3>
-                          <p className={`text-xs sm:text-sm max-w-xl mx-auto leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
-                            Streamline your workflow with these highly functional visual converters, custom galleries, and icon customization engines designed for creators.
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="toolkit-bento-grid">
-                          {[
-                            {
-                              id: 'tool-icon-gallery',
-                              title: 'Free Icon Gallery',
-                              actionTitle: 'Customize SVG Icons',
-                              description: 'Tailor, style, and preview premium minimal vectors with a custom sizing and customization dashboard.',
-                              url: 'https://templatemind.com/tools/icons',
-                              icon: <Grid className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-blue-500/10 to-indigo-500/5',
-                              borderAccent: 'group-hover:border-blue-500/35'
-                            },
-                            {
-                              id: 'tool-color-palettes',
-                              title: 'Free Color Palettes',
-                              actionTitle: 'Browse Trend Systems',
-                              description: 'Find inspiration in hundreds of trending harmonic range systems and architectural hue contrast charts.',
-                              url: 'https://templatemind.com/tools/color-palettes',
-                              icon: <Sliders className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-pink-500/10 to-rose-500/5',
-                              borderAccent: 'group-hover:border-pink-500/35'
-                            },
-                            {
-                              id: 'tool-ui-resources',
-                              title: 'Free UI Resources',
-                              actionTitle: 'Access Templates',
-                              description: 'Unlock responsive ready-to-deploy layouts, vector UI files, and elegant web resources.',
-                              url: 'https://templatemind.com/',
-                              icon: <Layers className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-purple-500/10 to-fuchsia-500/5',
-                              borderAccent: 'group-hover:border-purple-500/35'
-                            },
-                            {
-                              id: 'tool-css-fonts',
-                              title: 'CSS Font Stacks',
-                              actionTitle: 'Analyze Font Family',
-                              description: 'Browse beautiful, web-safe system fonts and modular typography fallback sets for modern layout stacks.',
-                              url: 'https://templatemind.com/tools/css-fonts',
-                              icon: <Type className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-emerald-500/10 to-teal-500/5',
-                              borderAccent: 'group-hover:border-emerald-500/35'
-                            },
-                            {
-                              id: 'tool-favicon-studio',
-                              title: 'Favicon Studio',
-                              actionTitle: 'Generate Multi-Size Icons',
-                              description: 'Customize complete high-resolution platform favicon manifests, site shortcuts, and packaging suites.',
-                              url: 'https://faviconexpert.com/',
-                              icon: <Globe className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-amber-500/10 to-orange-500/5',
-                              borderAccent: 'group-hover:border-amber-500/35'
-                            },
-                            {
-                              id: 'tool-css-suite',
-                              title: 'CSS Suite & Free Fonts',
-                              actionTitle: 'Access CSS Templates',
-                              description: 'Explore elegant, curated stylesheets, layout presets, and responsive web resources for rapid production.',
-                              url: 'https://freecss.net/',
-                              icon: <Sparkles className="h-5 w-5 text-[#00FFD1]" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }} />,
-                              bgGradient: 'from-cyan-500/10 to-blue-500/5',
-                              borderAccent: 'group-hover:border-cyan-500/35'
-                            }
-                          ].map((item) => (
-                            <a
-                              key={item.id}
-                              id={item.id}
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`group relative flex flex-col justify-between p-6 rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
-                                theme === 'light'
-                                  ? 'bg-white border-slate-200 hover:shadow-lg hover:shadow-slate-100 hover:border-slate-400'
-                                  : 'bg-[#020617]/40 border-white/5 hover:bg-white/5'
-                              } ${item.borderAccent}`}
-                            >
-                              {/* Background ambient gradient glow on hover */}
-                              <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
-
-                              <div className="relative space-y-4">
-                                <div className="flex items-start justify-between">
-                                  <div className={`p-2.5 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-white/5 border border-white/10'} group-hover:scale-110 transition-transform duration-300`}>
-                                    {item.icon}
-                                  </div>
-                                  <div className={`text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full border ${
-                                    theme === 'light'
-                                      ? 'border-slate-200 text-slate-500 bg-slate-50'
-                                      : 'border-white/10 text-slate-400 bg-slate-950/50'
-                                  }`}>
-                                    Free Tool
-                                  </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  <h4 className={`text-sm font-extrabold tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
-                                    {item.title}
-                                  </h4>
-                                  <p className={`text-xs leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
-                                    {item.description}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="relative pt-6 flex items-center justify-between border-t border-dashed mt-4 border-slate-200/10 dark:border-white/5">
-                                <span className="text-[11px] font-bold tracking-wider text-[#00FFD1] uppercase flex items-center gap-1 group-hover:translate-x-1 transition-transform" style={{ color: siteConfig.primaryNeonAccent || '#00FFD1' }}>
-                                  <span>{item.actionTitle}</span>
-                                  <ArrowRight className="h-3 w-3 animate-pulse" />
-                                </span>
-                                <ExternalLink className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 group-hover:rotate-12 transition-transform" />
-                              </div>
-                            </a>
-                          ))}
-                        </div>
+                      <div className="mt-20 pt-10" id="curated-creative-toolkit-section">
+                        <DesignUtilities theme={theme} siteConfig={siteConfig} />
                       </div>
 
                     </div>

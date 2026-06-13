@@ -2,25 +2,34 @@ import React, { useState } from 'react';
 import { HelpCircle, ChevronDown, Sparkles, Shield, FileText, Wrench, Moon, Sun } from 'lucide-react';
 import { SiteConfig } from '../types';
 
-interface FAQSectionProps {
-  theme?: string;
-  siteConfig?: Partial<SiteConfig>;
-}
-
-interface FAQItem {
+export interface FAQItem {
   id: string;
-  category: 'general' | 'licensing' | 'privacy' | 'guidelines';
+  category: string;
   question: string;
   answer: string;
   icon: React.ElementType;
 }
 
-export default function FAQSection({ theme = 'dark', siteConfig }: FAQSectionProps) {
+export interface FAQSectionProps {
+  theme?: string;
+  siteConfig?: Partial<SiteConfig>;
+  customItems?: FAQItem[];
+  title?: string;
+  subtitle?: string;
+}
+
+export default function FAQSection({ 
+  theme = 'dark', 
+  siteConfig, 
+  customItems, 
+  title = 'Frequently Asked Questions', 
+  subtitle = 'Browse answers regarding color harmonies, CC0 licenses, data coordinates, and system accessibility.'
+}: FAQSectionProps) {
   const accentColor = siteConfig?.primaryNeonAccent || '#00FFD1';
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<'all' | 'general' | 'licensing' | 'privacy' | 'guidelines'>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  const faqData: FAQItem[] = [
+  const defaultFaqData: FAQItem[] = [
     {
       id: 'what-is-flatpalette',
       category: 'general',
@@ -65,6 +74,8 @@ export default function FAQSection({ theme = 'dark', siteConfig }: FAQSectionPro
     }
   ];
 
+  const faqData = customItems || defaultFaqData;
+
   const handleToggle = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
@@ -73,41 +84,46 @@ export default function FAQSection({ theme = 'dark', siteConfig }: FAQSectionPro
     (item) => activeCategory === 'all' || item.category === activeCategory
   );
 
+  // Dynamically compute unique categories
+  const categories = ['all', ...Array.from(new Set(faqData.map(item => item.category)))];
+
   return (
     <section className="space-y-6 pt-10 border-t border-white/5" id="faq-interactive-section">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-[#00FFD1]" style={{ color: accentColor }} />
-            <span>Frequently Asked Questions</span>
+            <span>{title}</span>
           </h3>
           <p className="text-slate-400 text-xs mt-1">
-            Browse answers regarding color harmonies, CC0 licenses, data coordinates, and system accessibility.
+            {subtitle}
           </p>
         </div>
 
-        {/* Filter Badges */}
-        <div className="flex flex-wrap gap-1.5" id="faq-category-filters">
-          {(['all', 'general', 'licensing', 'privacy', 'guidelines'] as const).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => {
-                setActiveCategory(cat);
-                setExpandedId(null);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold tracking-wider uppercase transition-all border cursor-pointer ${
-                activeCategory === cat
-                  ? 'bg-white/10 text-white border-white/20'
-                  : theme === 'light'
-                  ? 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-950 hover:bg-slate-100'
-                  : 'bg-white/5 text-slate-400 border-white/5 hover:text-white hover:bg-white/10'
-              }`}
-              style={activeCategory === cat ? { borderColor: accentColor, color: accentColor } : {}}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {/* Filter Badges - Only render filter badges if we have multiple categories */}
+        {categories.length > 2 && (
+          <div className="flex flex-wrap gap-1.5" id="faq-category-filters">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  setExpandedId(null);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold tracking-wider uppercase transition-all border cursor-pointer ${
+                  activeCategory === cat
+                    ? 'bg-white/10 text-white border-white/20'
+                    : theme === 'light'
+                    ? 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-950 hover:bg-slate-100'
+                    : 'bg-white/5 text-slate-400 border-white/5 hover:text-white hover:bg-white/10'
+                }`}
+                style={activeCategory === cat ? { borderColor: accentColor, color: accentColor } : {}}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Accordion List */}

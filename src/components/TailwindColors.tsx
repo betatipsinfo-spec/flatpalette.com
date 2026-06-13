@@ -791,11 +791,48 @@ export default function TailwindColors({ theme, siteConfig, showToast }: Tailwin
         </div>
       </div>
 
-      {/* 5. Free Creative Design Utilities below */}
-      <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      {/* 5. Custom FAQ section first */}
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Tailwind CSS Colors FAQ"
+        subtitle="Learn about visual weights, class configuration utilities, and responsive accessibility scales."
+        customItems={[
+          {
+            id: 'tw-system',
+            category: 'Tailwind Engine',
+            question: 'What is the Tailwind CSS color hierarchy and how is it structured?',
+            answer: 'Tailwind colors are compiled across distinct hue families (e.g. Slate, Sky, Violet, Amber) graded numerically on a brightness scale from 50 (lightest) to 950 (darkest). This mathematical arrangement streamlines layout contrast.',
+            icon: Code
+          },
+          {
+            id: 'tw-shades',
+            category: 'Visual Weights',
+            question: 'What do the numeric scales from 50 to 950 represent?',
+            answer: 'The numbers indicate tone density and contrast weights. Weights like 50 and 100 are ideal for light containers, intermediate shades like 500 represent pure color bases, and 900 to 950 represent heavy colors for text or backgrounds.',
+            icon: Layers
+          },
+          {
+            id: 'tw-contrast',
+            category: 'Accessibility',
+            question: 'How do Tailwind weights help ensure WCAG standard compliance?',
+            answer: 'The scale makes it easy to maintain contrast rules. Generally, skipping 4 to 5 weight steps (e.g. pairing weight 900 text with weight 100 backdrops) guarantees a WCAG contrast ratio above 4.5:1.',
+            icon: Info
+          },
+          {
+            id: 'tw-export',
+            category: 'Utility Classes',
+            question: 'Can I copy these shades straight into Tailwind utility strings?',
+            answer: 'Yes! Inside the inspector, you can copy the hexadecimal codes, copy active custom styles, or duplicate raw tailwind classes (e.g. text-indigo-600 or bg-emerald-100) instantly.',
+            icon: Sparkles
+          }
+        ]}
+      />
 
-      {/* 6. General FAQ */}
-      <FAQSection theme={theme} siteConfig={siteConfig} />
+      {/* 6. Free Creative Design Utilities below FAQ */}
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
 
       {/* Interactive Popup Dynamic Color Inspector Modal */}
       <AnimatePresence>

@@ -785,11 +785,48 @@ export default function FlatColors({ theme, siteConfig, showToast }: FlatColorsP
         </div>
       </div>
 
-      {/* 5. Clean utilities section integration */}
-      <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      {/* 5. Custom FAQ Section first */}
+      <FAQSection 
+        theme={theme} 
+        siteConfig={siteConfig}
+        title="Flat UI Colors FAQ"
+        subtitle="Learn about the flat design movement, international flat spectrum coordinates, and layout legibility."
+        customItems={[
+          {
+            id: 'fc-movement',
+            category: 'Flat Aesthetic',
+            question: 'What defines the Flat UI color aesthetic and when is it used?',
+            answer: 'Flat design relies on sleek, clean, and vibrant hues void of drop-shadows, 3D overlays, or gradient fills. This modern aesthetic is perfect for flat vector illustrations, minimalist app screens, and grid interfaces.',
+            icon: Code
+          },
+          {
+            id: 'fc-grouping',
+            category: 'International flat',
+            question: 'How are these flat colors curated across this catalog?',
+            answer: 'We index flat color systems from worldwide design collections, hosting standard Spain, flat France, and classic retro system trends to provide a diverse selection of primary flat coordinates.',
+            icon: Layers
+          },
+          {
+            id: 'fc-contrast',
+            category: 'Accessibility',
+            question: 'Do Flat UI color palettes support the WCAG accessibility standards?',
+            answer: 'Absolutely. Because flat aesthetics emphasize pure, mid-to-high saturation colors, you can easily find pairing sets with contrast ratios exceeding 4.5:1. Use our active contrast checker to verify details.',
+            icon: Info
+          },
+          {
+            id: 'fc-export',
+            category: 'Export Hub',
+            question: 'How can I duplicate these flat hues to my development workspace?',
+            answer: 'Clicking any color tile or opening the inspector lets you copy raw hexadecimal values, copy styled CSS parameters, or bridge your selection directly to seed the core generator.',
+            icon: Sparkles
+          }
+        ]}
+      />
 
-      {/* 6. FAQ component mapping */}
-      <FAQSection theme={theme} siteConfig={siteConfig} />
+      {/* 6. Clean utilities section integration below FAQ */}
+      <div className="mt-20 pt-10 border-t border-white/5">
+        <DesignUtilities theme={theme} siteConfig={siteConfig} />
+      </div>
 
       {/* Interactive Popup Dynamic Color Inspector Modal (Popup must be more than 400px wide, exactly max-w-[450px]) */}
       <AnimatePresence>
